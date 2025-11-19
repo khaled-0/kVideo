@@ -2,6 +2,7 @@ import 'package:pigeon/pigeon.dart';
 
 /// Run the following to generate pigeon
 /// dart run pigeon --input pigeons/pigeon.dart
+/// TODO Don't depend on these directly, remove constructor
 
 @ConfigurePigeon(
   PigeonOptions(
@@ -21,14 +22,27 @@ abstract class PlayerInstance {
   void dispose(String id);
 }
 
+enum PlaybackStatus { playing, paused, finished, error, preparing }
+
+enum BoxFitMode { fill, fit }
+
+class VideoTextureData {
+  int? textureId;
+  int? width;
+  int? height;
+  BoxFitMode? fit;
+}
+
 @HostApi()
 abstract class PlayerControllerApi {
   void init(PlayerConfiguration? configuration);
 
   /// Must be called if ViewMode is texture in android. Returns textureId,width,height
-  Map<String, double> initAndroidTextureView();
+  VideoTextureData initAndroidTextureView();
 
   void play(Media media);
+
+  void stop();
 
   void pause();
 
@@ -43,25 +57,39 @@ abstract class PlayerControllerApi {
   void dispose();
 
   void enterPiPMode();
-}
 
-enum PlaybackStatus { playing, paused, finished, error, preparing }
+  int getProgressSecond();
+
+  List<TrackData> getTracks();
+
+  PlaybackStatus getPlaybackStatus();
+
+  double getPlaybackSpeed();
+
+  BoxFitMode getFit();
+
+  void setFit(BoxFitMode fit);
+}
 
 @FlutterApi()
 abstract class PlayerEventListener {
-  void videoSizeUpdate(int height, int width);
+  void onVideoSizeUpdate(int height, int width);
 
-  void durationUpdate(int durationSecond);
+  void onDurationUpdate(int durationSecond);
 
-  void progressUpdate(int second);
+  void onProgressUpdate(int second);
 
-  void bufferUpdate(int second);
+  void onBufferUpdate(int second);
 
-  void playbackStatusUpdate(PlaybackStatus status);
+  void onPlaybackUpdate(PlaybackStatus status);
 
   void onPlaybackError(String error);
 
   void onIMAStatusChange(bool showingAd);
+
+  void onTracksLoaded(List<TrackData> tracks);
+
+  void onPlaybackSpeedUpdate(double speed);
 }
 
 class Media {
@@ -113,4 +141,16 @@ class SeekConfig {
   final int? seekBackMs;
 
   SeekConfig({this.seekForwardMs, this.seekBackMs});
+}
+
+enum TrackType { audio, video, subtitle, unknown }
+
+class TrackData {
+  String? id; // Unique track ID
+  TrackType? type; // audio, video, subtitle, metadata
+  String? language; // en, es, fr, etc.
+  String? label; // Human-readable name
+  int? bitrate; // Audio/video bitrate
+  int? width; // Video width
+  int? height; // Video height
 }

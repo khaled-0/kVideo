@@ -2,8 +2,8 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-import 'controller.dart';
 import 'gen/pigeon.g.dart';
+import 'controller.dart';
 
 enum AndroidViewMode {
   /// Renders Android View Directly. Can be interactive
@@ -25,10 +25,13 @@ class PlayerView extends StatelessWidget {
     if (controller.androidViewMode == AndroidViewMode.texture) {
       return ValueListenableBuilder(
         valueListenable: controller.textureParams,
-        builder: (_, value, _) => AspectRatio(
-          aspectRatio: 16 / 9,
-          child: Texture(textureId: value.textureId ?? -1),
-        ),
+        builder: (_, value, _) {
+          if (!value.size.isFinite) return SizedBox();
+          return AspectRatio(
+            aspectRatio: value.size.aspectRatio,
+            child: Texture(textureId: value.textureId ?? -1),
+          );
+        },
       );
     }
 

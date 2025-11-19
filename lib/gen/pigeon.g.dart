@@ -47,6 +47,74 @@ enum PlaybackStatus {
   preparing,
 }
 
+enum BoxFitMode {
+  fill,
+  fit,
+}
+
+enum TrackType {
+  audio,
+  video,
+  subtitle,
+  unknown,
+}
+
+class VideoTextureData {
+  VideoTextureData({
+    this.textureId,
+    this.width,
+    this.height,
+    this.fit,
+  });
+
+  int? textureId;
+
+  int? width;
+
+  int? height;
+
+  BoxFitMode? fit;
+
+  List<Object?> _toList() {
+    return <Object?>[
+      textureId,
+      width,
+      height,
+      fit,
+    ];
+  }
+
+  Object encode() {
+    return _toList();  }
+
+  static VideoTextureData decode(Object result) {
+    result as List<Object?>;
+    return VideoTextureData(
+      textureId: result[0] as int?,
+      width: result[1] as int?,
+      height: result[2] as int?,
+      fit: result[3] as BoxFitMode?,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! VideoTextureData || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(encode(), other.encode());
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => Object.hashAll(_toList())
+;
+}
+
 class Media {
   Media({
     required this.url,
@@ -256,6 +324,77 @@ class SeekConfig {
 ;
 }
 
+class TrackData {
+  TrackData({
+    this.id,
+    this.type,
+    this.language,
+    this.label,
+    this.bitrate,
+    this.width,
+    this.height,
+  });
+
+  String? id;
+
+  TrackType? type;
+
+  String? language;
+
+  String? label;
+
+  int? bitrate;
+
+  int? width;
+
+  int? height;
+
+  List<Object?> _toList() {
+    return <Object?>[
+      id,
+      type,
+      language,
+      label,
+      bitrate,
+      width,
+      height,
+    ];
+  }
+
+  Object encode() {
+    return _toList();  }
+
+  static TrackData decode(Object result) {
+    result as List<Object?>;
+    return TrackData(
+      id: result[0] as String?,
+      type: result[1] as TrackType?,
+      language: result[2] as String?,
+      label: result[3] as String?,
+      bitrate: result[4] as int?,
+      width: result[5] as int?,
+      height: result[6] as int?,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! TrackData || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(encode(), other.encode());
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => Object.hashAll(_toList())
+;
+}
+
 
 class _PigeonCodec extends StandardMessageCodec {
   const _PigeonCodec();
@@ -267,17 +406,29 @@ class _PigeonCodec extends StandardMessageCodec {
     }    else if (value is PlaybackStatus) {
       buffer.putUint8(129);
       writeValue(buffer, value.index);
-    }    else if (value is Media) {
+    }    else if (value is BoxFitMode) {
       buffer.putUint8(130);
-      writeValue(buffer, value.encode());
-    }    else if (value is PlayerConfiguration) {
+      writeValue(buffer, value.index);
+    }    else if (value is TrackType) {
       buffer.putUint8(131);
-      writeValue(buffer, value.encode());
-    }    else if (value is BufferingConfig) {
+      writeValue(buffer, value.index);
+    }    else if (value is VideoTextureData) {
       buffer.putUint8(132);
       writeValue(buffer, value.encode());
-    }    else if (value is SeekConfig) {
+    }    else if (value is Media) {
       buffer.putUint8(133);
+      writeValue(buffer, value.encode());
+    }    else if (value is PlayerConfiguration) {
+      buffer.putUint8(134);
+      writeValue(buffer, value.encode());
+    }    else if (value is BufferingConfig) {
+      buffer.putUint8(135);
+      writeValue(buffer, value.encode());
+    }    else if (value is SeekConfig) {
+      buffer.putUint8(136);
+      writeValue(buffer, value.encode());
+    }    else if (value is TrackData) {
+      buffer.putUint8(137);
       writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
@@ -291,13 +442,23 @@ class _PigeonCodec extends StandardMessageCodec {
         final int? value = readValue(buffer) as int?;
         return value == null ? null : PlaybackStatus.values[value];
       case 130: 
-        return Media.decode(readValue(buffer)!);
+        final int? value = readValue(buffer) as int?;
+        return value == null ? null : BoxFitMode.values[value];
       case 131: 
-        return PlayerConfiguration.decode(readValue(buffer)!);
+        final int? value = readValue(buffer) as int?;
+        return value == null ? null : TrackType.values[value];
       case 132: 
-        return BufferingConfig.decode(readValue(buffer)!);
+        return VideoTextureData.decode(readValue(buffer)!);
       case 133: 
+        return Media.decode(readValue(buffer)!);
+      case 134: 
+        return PlayerConfiguration.decode(readValue(buffer)!);
+      case 135: 
+        return BufferingConfig.decode(readValue(buffer)!);
+      case 136: 
         return SeekConfig.decode(readValue(buffer)!);
+      case 137: 
+        return TrackData.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
     }
@@ -306,6 +467,7 @@ class _PigeonCodec extends StandardMessageCodec {
 
 /// Run the following to generate pigeon
 /// dart run pigeon --input pigeons/pigeon.dart
+/// TODO Don't depend on these directly, remove constructor
 class PlayerInstance {
   /// Constructor for [PlayerInstance].  The [binaryMessenger] named argument is
   /// available for dependency injection.  If it is left null, the default
@@ -403,7 +565,7 @@ class PlayerControllerApi {
   }
 
   /// Must be called if ViewMode is texture in android. Returns textureId,width,height
-  Future<Map<String, double>> initAndroidTextureView() async {
+  Future<VideoTextureData> initAndroidTextureView() async {
     final String pigeonVar_channelName = 'dev.flutter.pigeon.kvideo.PlayerControllerApi.initAndroidTextureView$pigeonVar_messageChannelSuffix';
     final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
@@ -427,7 +589,7 @@ class PlayerControllerApi {
         message: 'Host platform returned null value for non-null return value.',
       );
     } else {
-      return (pigeonVar_replyList[0] as Map<Object?, Object?>?)!.cast<String, double>();
+      return (pigeonVar_replyList[0] as VideoTextureData?)!;
     }
   }
 
@@ -439,6 +601,29 @@ class PlayerControllerApi {
       binaryMessenger: pigeonVar_binaryMessenger,
     );
     final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[media]);
+    final List<Object?>? pigeonVar_replyList =
+        await pigeonVar_sendFuture as List<Object?>?;
+    if (pigeonVar_replyList == null) {
+      throw _createConnectionError(pigeonVar_channelName);
+    } else if (pigeonVar_replyList.length > 1) {
+      throw PlatformException(
+        code: pigeonVar_replyList[0]! as String,
+        message: pigeonVar_replyList[1] as String?,
+        details: pigeonVar_replyList[2],
+      );
+    } else {
+      return;
+    }
+  }
+
+  Future<void> stop() async {
+    final String pigeonVar_channelName = 'dev.flutter.pigeon.kvideo.PlayerControllerApi.stop$pigeonVar_messageChannelSuffix';
+    final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
     final List<Object?>? pigeonVar_replyList =
         await pigeonVar_sendFuture as List<Object?>?;
     if (pigeonVar_replyList == null) {
@@ -614,46 +799,213 @@ class PlayerControllerApi {
       return;
     }
   }
+
+  Future<int> getProgressSecond() async {
+    final String pigeonVar_channelName = 'dev.flutter.pigeon.kvideo.PlayerControllerApi.getProgressSecond$pigeonVar_messageChannelSuffix';
+    final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final List<Object?>? pigeonVar_replyList =
+        await pigeonVar_sendFuture as List<Object?>?;
+    if (pigeonVar_replyList == null) {
+      throw _createConnectionError(pigeonVar_channelName);
+    } else if (pigeonVar_replyList.length > 1) {
+      throw PlatformException(
+        code: pigeonVar_replyList[0]! as String,
+        message: pigeonVar_replyList[1] as String?,
+        details: pigeonVar_replyList[2],
+      );
+    } else if (pigeonVar_replyList[0] == null) {
+      throw PlatformException(
+        code: 'null-error',
+        message: 'Host platform returned null value for non-null return value.',
+      );
+    } else {
+      return (pigeonVar_replyList[0] as int?)!;
+    }
+  }
+
+  Future<List<TrackData>> getTracks() async {
+    final String pigeonVar_channelName = 'dev.flutter.pigeon.kvideo.PlayerControllerApi.getTracks$pigeonVar_messageChannelSuffix';
+    final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final List<Object?>? pigeonVar_replyList =
+        await pigeonVar_sendFuture as List<Object?>?;
+    if (pigeonVar_replyList == null) {
+      throw _createConnectionError(pigeonVar_channelName);
+    } else if (pigeonVar_replyList.length > 1) {
+      throw PlatformException(
+        code: pigeonVar_replyList[0]! as String,
+        message: pigeonVar_replyList[1] as String?,
+        details: pigeonVar_replyList[2],
+      );
+    } else if (pigeonVar_replyList[0] == null) {
+      throw PlatformException(
+        code: 'null-error',
+        message: 'Host platform returned null value for non-null return value.',
+      );
+    } else {
+      return (pigeonVar_replyList[0] as List<Object?>?)!.cast<TrackData>();
+    }
+  }
+
+  Future<PlaybackStatus> getPlaybackStatus() async {
+    final String pigeonVar_channelName = 'dev.flutter.pigeon.kvideo.PlayerControllerApi.getPlaybackStatus$pigeonVar_messageChannelSuffix';
+    final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final List<Object?>? pigeonVar_replyList =
+        await pigeonVar_sendFuture as List<Object?>?;
+    if (pigeonVar_replyList == null) {
+      throw _createConnectionError(pigeonVar_channelName);
+    } else if (pigeonVar_replyList.length > 1) {
+      throw PlatformException(
+        code: pigeonVar_replyList[0]! as String,
+        message: pigeonVar_replyList[1] as String?,
+        details: pigeonVar_replyList[2],
+      );
+    } else if (pigeonVar_replyList[0] == null) {
+      throw PlatformException(
+        code: 'null-error',
+        message: 'Host platform returned null value for non-null return value.',
+      );
+    } else {
+      return (pigeonVar_replyList[0] as PlaybackStatus?)!;
+    }
+  }
+
+  Future<double> getPlaybackSpeed() async {
+    final String pigeonVar_channelName = 'dev.flutter.pigeon.kvideo.PlayerControllerApi.getPlaybackSpeed$pigeonVar_messageChannelSuffix';
+    final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final List<Object?>? pigeonVar_replyList =
+        await pigeonVar_sendFuture as List<Object?>?;
+    if (pigeonVar_replyList == null) {
+      throw _createConnectionError(pigeonVar_channelName);
+    } else if (pigeonVar_replyList.length > 1) {
+      throw PlatformException(
+        code: pigeonVar_replyList[0]! as String,
+        message: pigeonVar_replyList[1] as String?,
+        details: pigeonVar_replyList[2],
+      );
+    } else if (pigeonVar_replyList[0] == null) {
+      throw PlatformException(
+        code: 'null-error',
+        message: 'Host platform returned null value for non-null return value.',
+      );
+    } else {
+      return (pigeonVar_replyList[0] as double?)!;
+    }
+  }
+
+  Future<BoxFitMode> getFit() async {
+    final String pigeonVar_channelName = 'dev.flutter.pigeon.kvideo.PlayerControllerApi.getFit$pigeonVar_messageChannelSuffix';
+    final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final List<Object?>? pigeonVar_replyList =
+        await pigeonVar_sendFuture as List<Object?>?;
+    if (pigeonVar_replyList == null) {
+      throw _createConnectionError(pigeonVar_channelName);
+    } else if (pigeonVar_replyList.length > 1) {
+      throw PlatformException(
+        code: pigeonVar_replyList[0]! as String,
+        message: pigeonVar_replyList[1] as String?,
+        details: pigeonVar_replyList[2],
+      );
+    } else if (pigeonVar_replyList[0] == null) {
+      throw PlatformException(
+        code: 'null-error',
+        message: 'Host platform returned null value for non-null return value.',
+      );
+    } else {
+      return (pigeonVar_replyList[0] as BoxFitMode?)!;
+    }
+  }
+
+  Future<void> setFit(BoxFitMode fit) async {
+    final String pigeonVar_channelName = 'dev.flutter.pigeon.kvideo.PlayerControllerApi.setFit$pigeonVar_messageChannelSuffix';
+    final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[fit]);
+    final List<Object?>? pigeonVar_replyList =
+        await pigeonVar_sendFuture as List<Object?>?;
+    if (pigeonVar_replyList == null) {
+      throw _createConnectionError(pigeonVar_channelName);
+    } else if (pigeonVar_replyList.length > 1) {
+      throw PlatformException(
+        code: pigeonVar_replyList[0]! as String,
+        message: pigeonVar_replyList[1] as String?,
+        details: pigeonVar_replyList[2],
+      );
+    } else {
+      return;
+    }
+  }
 }
 
 abstract class PlayerEventListener {
   static const MessageCodec<Object?> pigeonChannelCodec = _PigeonCodec();
 
-  void videoSizeUpdate(int height, int width);
+  void onVideoSizeUpdate(int height, int width);
 
-  void durationUpdate(int durationSecond);
+  void onDurationUpdate(int durationSecond);
 
-  void progressUpdate(int second);
+  void onProgressUpdate(int second);
 
-  void bufferUpdate(int second);
+  void onBufferUpdate(int second);
 
-  void playbackStatusUpdate(PlaybackStatus status);
+  void onPlaybackUpdate(PlaybackStatus status);
 
   void onPlaybackError(String error);
 
   void onIMAStatusChange(bool showingAd);
 
+  void onTracksLoaded(List<TrackData> tracks);
+
+  void onPlaybackSpeedUpdate(double speed);
+
   static void setUp(PlayerEventListener? api, {BinaryMessenger? binaryMessenger, String messageChannelSuffix = '',}) {
     messageChannelSuffix = messageChannelSuffix.isNotEmpty ? '.$messageChannelSuffix' : '';
     {
       final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
-          'dev.flutter.pigeon.kvideo.PlayerEventListener.videoSizeUpdate$messageChannelSuffix', pigeonChannelCodec,
+          'dev.flutter.pigeon.kvideo.PlayerEventListener.onVideoSizeUpdate$messageChannelSuffix', pigeonChannelCodec,
           binaryMessenger: binaryMessenger);
       if (api == null) {
         pigeonVar_channel.setMessageHandler(null);
       } else {
         pigeonVar_channel.setMessageHandler((Object? message) async {
           assert(message != null,
-          'Argument for dev.flutter.pigeon.kvideo.PlayerEventListener.videoSizeUpdate was null.');
+          'Argument for dev.flutter.pigeon.kvideo.PlayerEventListener.onVideoSizeUpdate was null.');
           final List<Object?> args = (message as List<Object?>?)!;
           final int? arg_height = (args[0] as int?);
           assert(arg_height != null,
-              'Argument for dev.flutter.pigeon.kvideo.PlayerEventListener.videoSizeUpdate was null, expected non-null int.');
+              'Argument for dev.flutter.pigeon.kvideo.PlayerEventListener.onVideoSizeUpdate was null, expected non-null int.');
           final int? arg_width = (args[1] as int?);
           assert(arg_width != null,
-              'Argument for dev.flutter.pigeon.kvideo.PlayerEventListener.videoSizeUpdate was null, expected non-null int.');
+              'Argument for dev.flutter.pigeon.kvideo.PlayerEventListener.onVideoSizeUpdate was null, expected non-null int.');
           try {
-            api.videoSizeUpdate(arg_height!, arg_width!);
+            api.onVideoSizeUpdate(arg_height!, arg_width!);
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);
@@ -665,20 +1017,20 @@ abstract class PlayerEventListener {
     }
     {
       final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
-          'dev.flutter.pigeon.kvideo.PlayerEventListener.durationUpdate$messageChannelSuffix', pigeonChannelCodec,
+          'dev.flutter.pigeon.kvideo.PlayerEventListener.onDurationUpdate$messageChannelSuffix', pigeonChannelCodec,
           binaryMessenger: binaryMessenger);
       if (api == null) {
         pigeonVar_channel.setMessageHandler(null);
       } else {
         pigeonVar_channel.setMessageHandler((Object? message) async {
           assert(message != null,
-          'Argument for dev.flutter.pigeon.kvideo.PlayerEventListener.durationUpdate was null.');
+          'Argument for dev.flutter.pigeon.kvideo.PlayerEventListener.onDurationUpdate was null.');
           final List<Object?> args = (message as List<Object?>?)!;
           final int? arg_durationSecond = (args[0] as int?);
           assert(arg_durationSecond != null,
-              'Argument for dev.flutter.pigeon.kvideo.PlayerEventListener.durationUpdate was null, expected non-null int.');
+              'Argument for dev.flutter.pigeon.kvideo.PlayerEventListener.onDurationUpdate was null, expected non-null int.');
           try {
-            api.durationUpdate(arg_durationSecond!);
+            api.onDurationUpdate(arg_durationSecond!);
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);
@@ -690,20 +1042,20 @@ abstract class PlayerEventListener {
     }
     {
       final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
-          'dev.flutter.pigeon.kvideo.PlayerEventListener.progressUpdate$messageChannelSuffix', pigeonChannelCodec,
+          'dev.flutter.pigeon.kvideo.PlayerEventListener.onProgressUpdate$messageChannelSuffix', pigeonChannelCodec,
           binaryMessenger: binaryMessenger);
       if (api == null) {
         pigeonVar_channel.setMessageHandler(null);
       } else {
         pigeonVar_channel.setMessageHandler((Object? message) async {
           assert(message != null,
-          'Argument for dev.flutter.pigeon.kvideo.PlayerEventListener.progressUpdate was null.');
+          'Argument for dev.flutter.pigeon.kvideo.PlayerEventListener.onProgressUpdate was null.');
           final List<Object?> args = (message as List<Object?>?)!;
           final int? arg_second = (args[0] as int?);
           assert(arg_second != null,
-              'Argument for dev.flutter.pigeon.kvideo.PlayerEventListener.progressUpdate was null, expected non-null int.');
+              'Argument for dev.flutter.pigeon.kvideo.PlayerEventListener.onProgressUpdate was null, expected non-null int.');
           try {
-            api.progressUpdate(arg_second!);
+            api.onProgressUpdate(arg_second!);
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);
@@ -715,20 +1067,20 @@ abstract class PlayerEventListener {
     }
     {
       final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
-          'dev.flutter.pigeon.kvideo.PlayerEventListener.bufferUpdate$messageChannelSuffix', pigeonChannelCodec,
+          'dev.flutter.pigeon.kvideo.PlayerEventListener.onBufferUpdate$messageChannelSuffix', pigeonChannelCodec,
           binaryMessenger: binaryMessenger);
       if (api == null) {
         pigeonVar_channel.setMessageHandler(null);
       } else {
         pigeonVar_channel.setMessageHandler((Object? message) async {
           assert(message != null,
-          'Argument for dev.flutter.pigeon.kvideo.PlayerEventListener.bufferUpdate was null.');
+          'Argument for dev.flutter.pigeon.kvideo.PlayerEventListener.onBufferUpdate was null.');
           final List<Object?> args = (message as List<Object?>?)!;
           final int? arg_second = (args[0] as int?);
           assert(arg_second != null,
-              'Argument for dev.flutter.pigeon.kvideo.PlayerEventListener.bufferUpdate was null, expected non-null int.');
+              'Argument for dev.flutter.pigeon.kvideo.PlayerEventListener.onBufferUpdate was null, expected non-null int.');
           try {
-            api.bufferUpdate(arg_second!);
+            api.onBufferUpdate(arg_second!);
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);
@@ -740,20 +1092,20 @@ abstract class PlayerEventListener {
     }
     {
       final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
-          'dev.flutter.pigeon.kvideo.PlayerEventListener.playbackStatusUpdate$messageChannelSuffix', pigeonChannelCodec,
+          'dev.flutter.pigeon.kvideo.PlayerEventListener.onPlaybackUpdate$messageChannelSuffix', pigeonChannelCodec,
           binaryMessenger: binaryMessenger);
       if (api == null) {
         pigeonVar_channel.setMessageHandler(null);
       } else {
         pigeonVar_channel.setMessageHandler((Object? message) async {
           assert(message != null,
-          'Argument for dev.flutter.pigeon.kvideo.PlayerEventListener.playbackStatusUpdate was null.');
+          'Argument for dev.flutter.pigeon.kvideo.PlayerEventListener.onPlaybackUpdate was null.');
           final List<Object?> args = (message as List<Object?>?)!;
           final PlaybackStatus? arg_status = (args[0] as PlaybackStatus?);
           assert(arg_status != null,
-              'Argument for dev.flutter.pigeon.kvideo.PlayerEventListener.playbackStatusUpdate was null, expected non-null PlaybackStatus.');
+              'Argument for dev.flutter.pigeon.kvideo.PlayerEventListener.onPlaybackUpdate was null, expected non-null PlaybackStatus.');
           try {
-            api.playbackStatusUpdate(arg_status!);
+            api.onPlaybackUpdate(arg_status!);
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);
@@ -804,6 +1156,56 @@ abstract class PlayerEventListener {
               'Argument for dev.flutter.pigeon.kvideo.PlayerEventListener.onIMAStatusChange was null, expected non-null bool.');
           try {
             api.onIMAStatusChange(arg_showingAd!);
+            return wrapResponse(empty: true);
+          } on PlatformException catch (e) {
+            return wrapResponse(error: e);
+          }          catch (e) {
+            return wrapResponse(error: PlatformException(code: 'error', message: e.toString()));
+          }
+        });
+      }
+    }
+    {
+      final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
+          'dev.flutter.pigeon.kvideo.PlayerEventListener.onTracksLoaded$messageChannelSuffix', pigeonChannelCodec,
+          binaryMessenger: binaryMessenger);
+      if (api == null) {
+        pigeonVar_channel.setMessageHandler(null);
+      } else {
+        pigeonVar_channel.setMessageHandler((Object? message) async {
+          assert(message != null,
+          'Argument for dev.flutter.pigeon.kvideo.PlayerEventListener.onTracksLoaded was null.');
+          final List<Object?> args = (message as List<Object?>?)!;
+          final List<TrackData>? arg_tracks = (args[0] as List<Object?>?)?.cast<TrackData>();
+          assert(arg_tracks != null,
+              'Argument for dev.flutter.pigeon.kvideo.PlayerEventListener.onTracksLoaded was null, expected non-null List<TrackData>.');
+          try {
+            api.onTracksLoaded(arg_tracks!);
+            return wrapResponse(empty: true);
+          } on PlatformException catch (e) {
+            return wrapResponse(error: e);
+          }          catch (e) {
+            return wrapResponse(error: PlatformException(code: 'error', message: e.toString()));
+          }
+        });
+      }
+    }
+    {
+      final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
+          'dev.flutter.pigeon.kvideo.PlayerEventListener.onPlaybackSpeedUpdate$messageChannelSuffix', pigeonChannelCodec,
+          binaryMessenger: binaryMessenger);
+      if (api == null) {
+        pigeonVar_channel.setMessageHandler(null);
+      } else {
+        pigeonVar_channel.setMessageHandler((Object? message) async {
+          assert(message != null,
+          'Argument for dev.flutter.pigeon.kvideo.PlayerEventListener.onPlaybackSpeedUpdate was null.');
+          final List<Object?> args = (message as List<Object?>?)!;
+          final double? arg_speed = (args[0] as double?);
+          assert(arg_speed != null,
+              'Argument for dev.flutter.pigeon.kvideo.PlayerEventListener.onPlaybackSpeedUpdate was null, expected non-null double.');
+          try {
+            api.onPlaybackSpeedUpdate(arg_speed!);
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);

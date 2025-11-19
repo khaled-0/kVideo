@@ -1,55 +1,73 @@
 import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
+import 'package:kvideo/player_state.dart';
 
 import 'kvideo.dart';
 
 final _instanceManager = PlayerInstance();
 
-typedef VideoTextureParams = ({int? textureId, Size size});
+class VideoTextureParams {
+  final int? textureId;
+  final Size size;
+  final BoxFit fit;
 
-class PlayerController with WidgetsBindingObserver {
+  VideoTextureParams({
+    required this.textureId,
+    required this.size,
+    required this.fit,
+  });
+
+  factory VideoTextureParams.nil() =>
+      VideoTextureParams(textureId: null, size: Size.zero, fit: BoxFit.none);
+
+  VideoTextureParams copyWith({int? textureId, Size? size, BoxFit? fit}) {
+    return VideoTextureParams(
+      textureId: textureId ?? this.textureId,
+      size: size ?? this.size,
+      fit: fit ?? this.fit,
+    );
+  }
+}
+
+class PlayerController {
   final id = UniqueKey().toString();
 
   final AndroidViewMode androidViewMode;
 
   PlayerController({this.androidViewMode = AndroidViewMode.texture});
 
-  /// Only initialized if AndroidViewMode.texture
-  final ValueNotifier<VideoTextureParams> textureParams = ValueNotifier((
-    size: Size.zero,
-    textureId: null,
-  ));
+  /// Used if  androidViewMode AndroidViewMode.texture
+  final ValueNotifier<VideoTextureParams> textureParams = ValueNotifier(
+    VideoTextureParams.nil(),
+  );
 
   late final _api = PlayerControllerApi(messageChannelSuffix: id);
+  late final state = PlayerState(this);
 
-  Future<void> initialize({
-    PlayerConfiguration? configuration,
-
-    /// Pause / Resume on going back and forth to background
-    bool handleLifecycle = true,
-  }) async {
+  Future<void> initialize({PlayerConfiguration? configuration}) async {
     await _instanceManager.create(id);
     await _api.init(configuration);
+    PlayerEventListener.setUp(state, messageChannelSuffix: id);
+
     if (androidViewMode == AndroidViewMode.texture) {
       final value = await _api.initAndroidTextureView();
-      textureParams.value = (
-        textureId: value["textureId"]!.toInt(),
-        size: Size(value["width"]!, value["height"]!),
+      textureParams.value = textureParams.value.copyWith(
+        textureId: value.textureId ?? -1,
+        fit: value.fit == BoxFitMode.fill ? BoxFit.cover : BoxFit.contain,
+        size: Size(
+          (value.width ?? 0).toDouble(),
+          (value.height ?? 0).toDouble(),
+        ),
       );
     }
-
-    if (handleLifecycle) {
-      WidgetsBinding.instance.addObserver(this);
-    }
   }
 
-  /// Calling this method replaces existing listeners
-  void setListener(PlayerEventListener listener) {
-    PlayerEventListener.setUp(listener, messageChannelSuffix: id);
+  Future<void> play(Media? media) {
+    state.nowPlaying.value = media;
+    if (media == null) return _api.stop();
+    return _api.play(media);
   }
-
-  Future<void> play(Media media) => _api.play(media);
 
   Future<void> seekBack() => _api.seekBack();
 
@@ -64,24 +82,30 @@ class PlayerController with WidgetsBindingObserver {
 
   Future<void> enterPiPMode() => _api.enterPiPMode();
 
+  Future<Duration> getProgress() =>
+      _api.getProgressSecond().then((s) => Duration(seconds: s));
+
+  Future<List<TrackData>> getTracks() => _api.getTracks();
+
+  Future<PlaybackStatus> getPlaybackStatus() => _api.getPlaybackStatus();
+
+  Future<double> getPlaybackSpeed() => _api.getPlaybackSpeed();
+
+  Future<BoxFit> getFit() => _api.getFit().then(
+    (value) => value == BoxFitMode.fill ? BoxFit.cover : BoxFit.contain,
+  );
+
+  Future<void> setFit(BoxFit fit) {
+    if (fit == BoxFit.cover) {
+      return _api.setFit(BoxFitMode.fill);
+    } else {
+      return _api.setFit(BoxFitMode.fit);
+    }
+  }
+
   Future<void> dispose() {
     _instanceManager.dispose(id);
     PlayerEventListener.setUp(null, messageChannelSuffix: id);
-    WidgetsBinding.instance.removeObserver(this);
     return _api.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    super.didChangeAppLifecycleState(state);
-    switch (state) {
-      case AppLifecycleState.paused:
-        pause();
-
-      case AppLifecycleState.resumed:
-        resume();
-
-      default:
-    }
   }
 }
