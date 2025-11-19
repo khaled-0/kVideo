@@ -62,6 +62,8 @@ class PlayerController with WidgetsBindingObserver {
 
   Future<void> resume() => _api.resume();
 
+  Future<void> enterPiPMode() => _api.enterPiPMode();
+
   Future<void> dispose() {
     _instanceManager.dispose(id);
     PlayerEventListener.setUp(null, messageChannelSuffix: id);

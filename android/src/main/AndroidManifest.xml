@@ -1,4 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="dev.khaled.kvideo">
 
     <uses-permission android:name="android.permission.WAKE_LOCK" />
@@ -8,9 +9,12 @@
     <application>
 
         <activity
-            android:name=".PlayerActivity"
+            android:name=".PiPActivity"
             android:exported="false"
             android:launchMode="singleTop"
-            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
+            android:supportsPictureInPicture="true"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen"
+            android:configChanges="keyboardHidden|orientation|screenSize|smallestScreenSize|screenLayout"
+            tools:targetApi="24" />
     </application>
 </manifest>

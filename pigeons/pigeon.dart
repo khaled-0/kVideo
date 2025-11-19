@@ -41,6 +41,8 @@ abstract class PlayerControllerApi {
   void seekBack();
 
   void dispose();
+
+  void enterPiPMode();
 }
 
 enum PlaybackStatus { playing, paused, finished, error, preparing }

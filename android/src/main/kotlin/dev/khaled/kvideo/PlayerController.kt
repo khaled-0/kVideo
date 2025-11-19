@@ -4,6 +4,7 @@ import Media
 import PlayerConfiguration
 import PlayerControllerApi
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import androidx.annotation.OptIn
 import androidx.core.net.toUri
@@ -193,6 +194,18 @@ class PlayerController(
     override fun seekTo(positionMs: Long) = player.seekTo(positionMs)
     override fun seekForward() = player.seekForward()
     override fun seekBack() = player.seekBack()
+
+
+    private val pipListener = {
+        player.setVideoSurface(surfaceProducer.surface)
+    }
+    override fun enterPiPMode() {
+        val intent = Intent(context, PiPActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        intent.putExtra("id", suffix)
+        context.startActivity(intent)
+        PipManager.addListener(pipListener)
+    }
 
     override fun onSurfaceAvailable() {
         super.onSurfaceAvailable()

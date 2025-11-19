@@ -362,6 +362,7 @@ interface PlayerControllerApi {
   fun seekForward()
   fun seekBack()
   fun dispose()
+  fun enterPiPMode()
 
   companion object {
     /** The codec used by PlayerControllerApi. */
@@ -511,6 +512,22 @@ interface PlayerControllerApi {
           channel.setMessageHandler { _, reply ->
             val wrapped: List<Any?> = try {
               api.dispose()
+              listOf(null)
+            } catch (exception: Throwable) {
+              PigeonPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.kvideo.PlayerControllerApi.enterPiPMode$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { _, reply ->
+            val wrapped: List<Any?> = try {
+              api.enterPiPMode()
               listOf(null)
             } catch (exception: Throwable) {
               PigeonPigeonUtils.wrapError(exception)

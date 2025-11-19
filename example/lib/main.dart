@@ -1,30 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:kvideo/kvideo.dart';
 
+final controller = PlayerController(androidViewMode: AndroidViewMode.texture);
+
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   final urls = [
     "https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8",
   ];
-  final controller = PlayerController(androidViewMode: AndroidViewMode.texture);
   controller.initialize().then((_) {
     controller.play(Media(url: urls[0]));
   });
 
   // runApp(Center(child: PlayerView(controller)));
-  runApp(MaterialApp(home: DesignScreen(child: PlayerView(controller))));
+  runApp(MaterialApp(home: PlayerScreen(child: PlayerView(controller))));
 }
 
-class DesignScreen extends StatefulWidget {
+class PlayerScreen extends StatefulWidget {
   final Widget child;
 
-  const DesignScreen({Key? key, required this.child}) : super(key: key);
+  const PlayerScreen({super.key, required this.child});
 
   @override
-  State<DesignScreen> createState() => _DesignScreenState();
+  State<PlayerScreen> createState() => _PlayerScreenState();
 }
 
-class _DesignScreenState extends State<DesignScreen> {
+class _PlayerScreenState extends State<PlayerScreen> {
   Offset _offset = Offset.zero;
   bool show = true;
 
@@ -73,6 +74,17 @@ class _DesignScreenState extends State<DesignScreen> {
                   });
                 },
                 child: Text("Hero"),
+              ),
+            ),
+
+            Positioned(
+              bottom: 100,
+              right: 40,
+              child: ElevatedButton(
+                onPressed: () {
+                  controller.enterPiPMode();
+                },
+                child: Text("PIP"),
               ),
             ),
           ],

@@ -25,12 +25,12 @@ class PlayerEventHandler(
                 handler.postDelayed(this, 1000)
 
                 if (!player.isPlaying) return
-                listener.onProgress(
-                    player.currentPosition / 1000,
-                    player.bufferedPosition / 1000,
-                ) {}
-
-                listener.onDurationChange(player.duration / 1000) {}
+//                listener.onProgress(
+//                    player.currentPosition / 1000,
+//                    player.bufferedPosition / 1000,
+//                ) {}
+//
+//                listener.onDurationChange(player.duration / 1000) {}
             }
         })
     }
@@ -43,21 +43,21 @@ class PlayerEventHandler(
 
     override fun onIsLoadingChanged(isLoading: Boolean) {
         super.onIsLoadingChanged(isLoading)
-        listener.onLoadingUpdate(isLoading) {}
+//        listener.onLoadingUpdate(isLoading) {}
     }
 
     override fun onIsPlayingChanged(isPlaying: Boolean) {
         super.onIsPlayingChanged(isPlaying)
-        listener.onPlaybackUpdate(isPlaying) {}
+//        listener.onPlaybackUpdate(isPlaying) {}
     }
 
 
     override fun onPlaybackStateChanged(state: Int) {
         super.onPlaybackStateChanged(state)
         if (state == Player.STATE_READY) {
-            listener.onPlaybackUpdate(player.isPlaying) {}
+//            listener.onPlaybackUpdate(player.isPlaying) {}
         }
-        if (state == Player.STATE_ENDED) listener.onPlaybackFinish {}
+//        if (state == Player.STATE_ENDED) listener.onPlaybackFinish {}
     }
 
 
@@ -67,7 +67,7 @@ class PlayerEventHandler(
         reason: Int,
     ) {
         super.onPositionDiscontinuity(oldPosition, newPosition, reason)
-        listener.onProgress(newPosition.positionMs / 1000, player.bufferedPosition / 1000) {}
+//        listener.onProgress(newPosition.positionMs / 1000, player.bufferedPosition / 1000) {}
     }
 
 
@@ -81,16 +81,16 @@ class PlayerEventHandler(
             AdEvent.AdEventType.ALL_ADS_COMPLETED,
             AdEvent.AdEventType.COMPLETED,
             AdEvent.AdEventType.SKIPPED,
-            AdEvent.AdEventType.CONTENT_RESUME_REQUESTED -> listener.onAdStatusChange(
+            AdEvent.AdEventType.CONTENT_RESUME_REQUESTED -> listener.onIMAStatusChange(
                 false
             ) {}
 
             AdEvent.AdEventType.STARTED,
-            AdEvent.AdEventType.CONTENT_PAUSE_REQUESTED -> listener.onAdStatusChange(
+            AdEvent.AdEventType.CONTENT_PAUSE_REQUESTED -> listener.onIMAStatusChange(
                 true
             ) {}
 
-            AdEvent.AdEventType.AD_PROGRESS -> listener.onAdStatusChange(true) {}
+            AdEvent.AdEventType.AD_PROGRESS -> listener.onIMAStatusChange(true) {}
 
             else -> null
         }

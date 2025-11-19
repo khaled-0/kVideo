@@ -65,35 +65,18 @@ private class PlayerFactory(
         return PlayerView(getController(args as String))
     }
 }
-@OptIn(UnstableApi::class)
-class PlayerView(
-    val controller: PlayerController,
-    val hybridMode: Boolean = true,
-) : PlatformView {
 
-    private val surfaceView = lazy { SurfaceView(controller.context) }
+@OptIn(UnstableApi::class)
+class PlayerView(val controller: PlayerController) : PlatformView {
 
     init {
         with(controller.playerView) {
-            keepScreenOn = true
             useController = false
             setShowBuffering(SHOW_BUFFERING_NEVER)
         }
-
-        if (!hybridMode) {
-            with(surfaceView.value) {
-                setZOrderMediaOverlay(true)
-                controller.player.setVideoSurfaceView(this)
-            }
-        }
     }
 
-    override fun getView(): View {
-        if (!hybridMode) return surfaceView.value
-        return controller.playerView
-    }
+    override fun getView(): View = controller.playerView
 
-    override fun dispose() {
-        if (surfaceView.isInitialized()) surfaceView.value.holder.surface.release()
-    }
+    override fun dispose() {}
 }

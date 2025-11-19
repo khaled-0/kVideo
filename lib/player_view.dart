@@ -25,7 +25,10 @@ class PlayerView extends StatelessWidget {
     if (controller.androidViewMode == AndroidViewMode.texture) {
       return ValueListenableBuilder(
         valueListenable: controller.textureParams,
-        builder: (_, value, _) => Texture(textureId: value ?? -1),
+        builder: (_, value, _) => AspectRatio(
+          aspectRatio: 16 / 9,
+          child: Texture(textureId: value.textureId ?? -1),
+        ),
       );
     }
 
