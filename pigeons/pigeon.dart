@@ -66,14 +66,18 @@ abstract class PlayerControllerApi {
 
   double getPlaybackSpeed();
 
+  void setPlaybackSpeed(double speed);
+
   BoxFitMode getFit();
 
   void setFit(BoxFitMode fit);
+
+  bool isPlayingIMA();
 }
 
 @FlutterApi()
 abstract class PlayerEventListener {
-  void onVideoSizeUpdate(int height, int width);
+  void onVideoSizeUpdate(int width, int height);
 
   void onDurationUpdate(int durationSecond);
 

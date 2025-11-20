@@ -3,8 +3,8 @@ package dev.khaled.kvideo
 import PlayerControllerApi
 import PlayerInstance
 import android.content.Context
-import android.view.SurfaceView
 import android.view.View
+import android.view.ViewParent
 import androidx.annotation.OptIn
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.PlayerView.SHOW_BUFFERING_NEVER
@@ -68,7 +68,6 @@ private class PlayerFactory(
 
 @OptIn(UnstableApi::class)
 class PlayerView(val controller: PlayerController) : PlatformView {
-
     init {
         with(controller.playerView) {
             useController = false

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kvideo/kvideo.dart';
 
-final controller = PlayerController(androidViewMode: AndroidViewMode.texture);
+final controller = PlayerController(androidViewMode: AndroidViewMode.hybrid);
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -47,7 +47,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   tag: "v",
                   child: ClipRRect(
                     borderRadius: BorderRadiusGeometry.circular(100),
-                    child: show ? widget.child : SizedBox(),
+                    child: show ? Center(child: widget.child) : SizedBox(),
                   ),
                 ),
               ),

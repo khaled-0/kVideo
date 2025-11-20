@@ -1,17 +1,25 @@
 package dev.khaled.kvideo
 
+import BoxFitMode
 import Media
+import PlaybackStatus
 import PlayerConfiguration
 import PlayerControllerApi
+import TrackData
+import VideoTextureData
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.view.SurfaceView
 import androidx.annotation.OptIn
 import androidx.core.net.toUri
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
+import androidx.media3.common.Format
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
+import androidx.media3.common.MimeTypes
+import androidx.media3.common.Player
 import androidx.media3.common.util.Log
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultHttpDataSource
@@ -24,6 +32,8 @@ import androidx.media3.exoplayer.drm.HttpMediaDrmCallback
 import androidx.media3.exoplayer.drm.UnsupportedDrmException
 import androidx.media3.exoplayer.ima.ImaAdsLoader
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
+import androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM
 import androidx.media3.ui.PlayerView
 import com.google.ads.interactivemedia.v3.api.ImaSdkFactory
 import com.google.ads.interactivemedia.v3.api.ImaSdkSettings
@@ -106,24 +116,13 @@ class PlayerController(
         }
     }
 
-//    override fun initAndroidActivityView() {
-//        context.startActivity(
-//            Intent(context, PlayerActivity::class.java).apply {
-//                flags = Intent.FLAG_ACTIVITY_NEW_TASK
-//                putExtra("id", suffix)
-//            })
-//    }
 
-    override fun initAndroidTextureView(): Map<String, Double> {
+    override fun initAndroidTextureView(): VideoTextureData {
         surfaceProducer = textureRegistry.createSurfaceProducer()
         surfaceProducer.setCallback(this)
         val textureId = surfaceProducer.id()
         player.setVideoSurface(surfaceProducer.surface)
-        return buildMap {
-            put("textureId", textureId.toDouble())
-            put("width", player.videoFormat?.width?.toDouble() ?: 0.0)
-            put("height", player.videoFormat?.height?.toDouble() ?: 0.0)
-        }
+        return VideoTextureData(textureId = textureId, fit = getFit())
     }
 
 
@@ -188,24 +187,87 @@ class PlayerController(
         player.prepare()
     }
 
-
+    override fun stop() = player.stop()
     override fun pause() = player.pause()
     override fun resume() = player.play()
     override fun seekTo(positionMs: Long) = player.seekTo(positionMs)
     override fun seekForward() = player.seekForward()
     override fun seekBack() = player.seekBack()
+    override fun setPlaybackSpeed(speed: Double) = player.setPlaybackSpeed(speed.toFloat())
 
 
     private val pipListener = {
-        player.setVideoSurface(surfaceProducer.surface)
+        if (this::surfaceProducer.isInitialized) {
+            player.setVideoSurface(surfaceProducer.surface)
+        } else {
+            playerView.player = player
+            player.setVideoSurfaceView(playerView.videoSurfaceView as SurfaceView)
+        }
     }
+
     override fun enterPiPMode() {
         val intent = Intent(context, PiPActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
         intent.putExtra("id", suffix)
         context.startActivity(intent)
-        PipManager.addListener(pipListener)
+        PiPManager.addListener(pipListener)
     }
+
+    override fun getProgressSecond(): Long = player.currentPosition
+
+    override fun getTracks(): List<TrackData> = player.currentTracks.groups.flatMap { group ->
+        val trackGroup = group.mediaTrackGroup
+
+        (0 until trackGroup.length).mapNotNull { i ->
+            if (!group.isTrackSupported(i)) return@mapNotNull null
+            val format = trackGroup.getFormat(i)
+            val type = when (format.sampleMimeType) {
+                null -> null
+                else -> when {
+                    MimeTypes.isVideo(format.sampleMimeType) -> TrackType.VIDEO
+                    MimeTypes.isAudio(format.sampleMimeType) -> TrackType.AUDIO
+                    MimeTypes.isText(format.sampleMimeType) -> TrackType.SUBTITLE
+                    else -> TrackType.UNKNOWN
+                }
+            }
+
+            TrackData(
+                id = format.id,
+                type = type,
+                language = format.language,
+                label = format.label,
+                bitrate = format.bitrate.takeIf { it != Format.NO_VALUE }?.toLong(),
+                width = format.width.takeIf { it != Format.NO_VALUE }?.toLong(),
+                height = format.height.takeIf { it != Format.NO_VALUE }?.toLong()
+            )
+        }
+    }
+
+
+    override fun getPlaybackStatus(): PlaybackStatus {
+        return when (player.playbackState) {
+            Player.STATE_BUFFERING -> PlaybackStatus.PREPARING
+            Player.STATE_READY -> if (player.playWhenReady) PlaybackStatus.PLAYING else PlaybackStatus.PAUSED
+            Player.STATE_IDLE -> if (player.playerError != null) PlaybackStatus.ERROR else PlaybackStatus.FINISHED
+            else -> PlaybackStatus.FINISHED
+        }
+    }
+
+    override fun getPlaybackSpeed(): Double = player.playbackParameters.speed.toDouble()
+
+    override fun getFit(): BoxFitMode = when (playerView.resizeMode) {
+        RESIZE_MODE_ZOOM -> BoxFitMode.FILL
+        else -> BoxFitMode.FIT
+    }
+
+    override fun setFit(fit: BoxFitMode) {
+        playerView.resizeMode = when (fit) {
+            BoxFitMode.FIT -> RESIZE_MODE_FIT
+            BoxFitMode.FILL -> RESIZE_MODE_ZOOM
+        }
+    }
+
+    override fun isPlayingIMA(): Boolean = player.isPlayingAd
 
     override fun onSurfaceAvailable() {
         super.onSurfaceAvailable()
@@ -227,6 +289,7 @@ class PlayerController(
         playerView.player = null
         player.release()
         if (this::surfaceProducer.isInitialized) surfaceProducer.surface.release()
+        PiPManager.removeListener(pipListener)
     }
 }
 

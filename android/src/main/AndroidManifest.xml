@@ -10,11 +10,11 @@
 
         <activity
             android:name=".PiPActivity"
+            android:configChanges="keyboardHidden|orientation|screenSize|smallestScreenSize|screenLayout"
             android:exported="false"
-            android:launchMode="singleTop"
+            android:launchMode="singleTask"
             android:supportsPictureInPicture="true"
             android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen"
-            android:configChanges="keyboardHidden|orientation|screenSize|smallestScreenSize|screenLayout"
             tools:targetApi="24" />
     </application>
 </manifest>

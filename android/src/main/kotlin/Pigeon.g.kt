@@ -512,8 +512,10 @@ interface PlayerControllerApi {
   fun getTracks(): List<TrackData>
   fun getPlaybackStatus(): PlaybackStatus
   fun getPlaybackSpeed(): Double
+  fun setPlaybackSpeed(speed: Double)
   fun getFit(): BoxFitMode
   fun setFit(fit: BoxFitMode)
+  fun isPlayingIMA(): Boolean
 
   companion object {
     /** The codec used by PlayerControllerApi. */
@@ -766,6 +768,24 @@ interface PlayerControllerApi {
         }
       }
       run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.kvideo.PlayerControllerApi.setPlaybackSpeed$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val speedArg = args[0] as Double
+            val wrapped: List<Any?> = try {
+              api.setPlaybackSpeed(speedArg)
+              listOf(null)
+            } catch (exception: Throwable) {
+              PigeonPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
         val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.kvideo.PlayerControllerApi.getFit$separatedMessageChannelSuffix", codec)
         if (api != null) {
           channel.setMessageHandler { _, reply ->
@@ -798,6 +818,21 @@ interface PlayerControllerApi {
           channel.setMessageHandler(null)
         }
       }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.kvideo.PlayerControllerApi.isPlayingIMA$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { _, reply ->
+            val wrapped: List<Any?> = try {
+              listOf(api.isPlayingIMA())
+            } catch (exception: Throwable) {
+              PigeonPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
     }
   }
 }
@@ -809,12 +844,12 @@ class PlayerEventListener(private val binaryMessenger: BinaryMessenger, private 
       PigeonPigeonCodec()
     }
   }
-  fun onVideoSizeUpdate(heightArg: Long, widthArg: Long, callback: (Result<Unit>) -> Unit)
+  fun onVideoSizeUpdate(widthArg: Long, heightArg: Long, callback: (Result<Unit>) -> Unit)
 {
     val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
     val channelName = "dev.flutter.pigeon.kvideo.PlayerEventListener.onVideoSizeUpdate$separatedMessageChannelSuffix"
     val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
-    channel.send(listOf(heightArg, widthArg)) {
+    channel.send(listOf(widthArg, heightArg)) {
       if (it is List<*>) {
         if (it.size > 1) {
           callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))

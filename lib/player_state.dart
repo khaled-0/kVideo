@@ -53,7 +53,7 @@ class PlayerState implements PlayerEventListener {
   }
 
   @override
-  void onVideoSizeUpdate(int height, int width) {
+  void onVideoSizeUpdate(int width, int height) {
     _controller.textureParams.value = _controller.textureParams.value.copyWith(
       size: Size(width.toDouble(), height.toDouble()),
     );

@@ -912,6 +912,29 @@ class PlayerControllerApi {
     }
   }
 
+  Future<void> setPlaybackSpeed(double speed) async {
+    final String pigeonVar_channelName = 'dev.flutter.pigeon.kvideo.PlayerControllerApi.setPlaybackSpeed$pigeonVar_messageChannelSuffix';
+    final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[speed]);
+    final List<Object?>? pigeonVar_replyList =
+        await pigeonVar_sendFuture as List<Object?>?;
+    if (pigeonVar_replyList == null) {
+      throw _createConnectionError(pigeonVar_channelName);
+    } else if (pigeonVar_replyList.length > 1) {
+      throw PlatformException(
+        code: pigeonVar_replyList[0]! as String,
+        message: pigeonVar_replyList[1] as String?,
+        details: pigeonVar_replyList[2],
+      );
+    } else {
+      return;
+    }
+  }
+
   Future<BoxFitMode> getFit() async {
     final String pigeonVar_channelName = 'dev.flutter.pigeon.kvideo.PlayerControllerApi.getFit$pigeonVar_messageChannelSuffix';
     final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
@@ -962,12 +985,40 @@ class PlayerControllerApi {
       return;
     }
   }
+
+  Future<bool> isPlayingIMA() async {
+    final String pigeonVar_channelName = 'dev.flutter.pigeon.kvideo.PlayerControllerApi.isPlayingIMA$pigeonVar_messageChannelSuffix';
+    final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final List<Object?>? pigeonVar_replyList =
+        await pigeonVar_sendFuture as List<Object?>?;
+    if (pigeonVar_replyList == null) {
+      throw _createConnectionError(pigeonVar_channelName);
+    } else if (pigeonVar_replyList.length > 1) {
+      throw PlatformException(
+        code: pigeonVar_replyList[0]! as String,
+        message: pigeonVar_replyList[1] as String?,
+        details: pigeonVar_replyList[2],
+      );
+    } else if (pigeonVar_replyList[0] == null) {
+      throw PlatformException(
+        code: 'null-error',
+        message: 'Host platform returned null value for non-null return value.',
+      );
+    } else {
+      return (pigeonVar_replyList[0] as bool?)!;
+    }
+  }
 }
 
 abstract class PlayerEventListener {
   static const MessageCodec<Object?> pigeonChannelCodec = _PigeonCodec();
 
-  void onVideoSizeUpdate(int height, int width);
+  void onVideoSizeUpdate(int width, int height);
 
   void onDurationUpdate(int durationSecond);
 
@@ -998,14 +1049,14 @@ abstract class PlayerEventListener {
           assert(message != null,
           'Argument for dev.flutter.pigeon.kvideo.PlayerEventListener.onVideoSizeUpdate was null.');
           final List<Object?> args = (message as List<Object?>?)!;
-          final int? arg_height = (args[0] as int?);
-          assert(arg_height != null,
-              'Argument for dev.flutter.pigeon.kvideo.PlayerEventListener.onVideoSizeUpdate was null, expected non-null int.');
-          final int? arg_width = (args[1] as int?);
+          final int? arg_width = (args[0] as int?);
           assert(arg_width != null,
               'Argument for dev.flutter.pigeon.kvideo.PlayerEventListener.onVideoSizeUpdate was null, expected non-null int.');
+          final int? arg_height = (args[1] as int?);
+          assert(arg_height != null,
+              'Argument for dev.flutter.pigeon.kvideo.PlayerEventListener.onVideoSizeUpdate was null, expected non-null int.');
           try {
-            api.onVideoSizeUpdate(arg_height!, arg_width!);
+            api.onVideoSizeUpdate(arg_width!, arg_height!);
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);

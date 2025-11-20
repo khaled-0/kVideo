@@ -1,15 +1,14 @@
 package dev.khaled.kvideo
 
 import android.app.PictureInPictureParams
+import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
-import android.view.SurfaceView
-import android.view.ViewGroup
 import androidx.activity.ComponentActivity
 import androidx.annotation.OptIn
-import androidx.lifecycle.Lifecycle
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.PlayerView
 
@@ -21,54 +20,82 @@ class PiPActivity : ComponentActivity() {
         KVideoPlugin.controllers[intent.getStringExtra("id")]!!
     }
 
+//    private val actionsReceiver = object : BroadcastReceiver() {
+//        override fun onReceive(context: Context?, intent: Intent?) {
+//            if (intent?.action == ACTION_BROADCAST_CONTROL) {
+//                if (controller.player.isPlaying) controller.player.pause()
+//                else controller.player.play()
+//            }
+//        }
+//    }
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return finishActivity(-1)
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return finishAndRemoveTask()
+        if (!packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)) return finishAndRemoveTask()
 
-        if (controller.playerView.parent != null) {
-            (controller.playerView.parent as ViewGroup).removeView(controller.playerView)
-        }
+        val playerView = PlayerView(this)
+        setContentView(playerView)
 
-        controller.playerView.player = controller.player
-        controller.player.setVideoSurfaceView(controller.playerView.videoSurfaceView as SurfaceView)
-        setContentView(controller.playerView)
-
-        with(controller.playerView) {
+        with(playerView) {
             useController = false
             setShowBuffering(PlayerView.SHOW_BUFFERING_ALWAYS)
+            player = controller.player
         }
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-            enterPictureInPictureMode()
+            @Suppress("DEPRECATION") enterPictureInPictureMode()
         } else {
             val params = PictureInPictureParams.Builder()
+//            ContextCompat.registerReceiver(
+//                this,
+//                actionsReceiver,
+//                IntentFilter(ACTION_BROADCAST_CONTROL),
+//                ContextCompat.RECEIVER_NOT_EXPORTED
+//            )
+
+//            val action = RemoteAction(
+//                Icon.createWithResource(
+//                    this, if (controller.player.isPlaying) android.R.drawable.ic_media_pause
+//                    else android.R.drawable.ic_media_play
+//                ),
+//                "Play/Pause",
+//                "Play or Pause the currently playing content",
+//                PendingIntent.getBroadcast(
+//                    this,
+//                    0,
+//                    Intent(ACTION_BROADCAST_CONTROL),
+//                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+//                )
+//            )
+
+//            params.setActions(listOf(action))
             enterPictureInPictureMode(params.build())
+
         }
     }
+
 
     override fun onPictureInPictureModeChanged(
         isInPictureInPictureMode: Boolean, newConfig: Configuration
     ) {
-        if(!isInPictureInPictureMode) finishAndRemoveTask()
-        Log.d("PIPPPPP", lifecycle.currentState.name)
-        if (lifecycle.currentState == Lifecycle.State.CREATED) {
-            //finishAndRemoveTask()
-            //when user click on Close button of PIP this will trigger, do what you want here
-        } else if (lifecycle.currentState == Lifecycle.State.STARTED) {
-           // finishAndRemoveTask()
-        }
+        if (!isInPictureInPictureMode) finishAndRemoveTask()
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
     }
 
     override fun finishAndRemoveTask() {
         super.finishAndRemoveTask()
-        PipManager.notifyPipExited()
+        PiPManager.notifyPipExited()
+//        unregisterReceiver(actionsReceiver)
     }
+
+//    companion object {
+//        const val ACTION_BROADCAST_CONTROL = "ACTION_BROADCAST_CONTROL"
+//    }
 }
 
-object PipManager {
-
+object PiPManager {
     private val listeners = mutableListOf<() -> Unit>()
 
     fun addListener(listener: () -> Unit) {
