@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kvideo/kvideo.dart';
 
-final controller = PlayerController(androidViewMode: AndroidViewMode.hybrid);
+final controller = PlayerController(androidViewMode: AndroidViewMode.texture);
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,8 +41,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
               top: _offset.dy,
               left: _offset.dx,
               child: SizedBox(
-                height: 200,
-                width: 200,
+                height: 400,
+                width: 400,
                 child: Hero(
                   tag: "v",
                   child: ClipRRect(
@@ -77,6 +77,31 @@ class _PlayerScreenState extends State<PlayerScreen> {
               ),
             ),
 
+            FutureBuilder(
+              future: controller.getTracks(),
+              builder: (context, snapshot) {
+                return Column(
+                  children: [
+                    TextButton(
+                      child: Text("Auto"),
+                      onPressed: () {
+                        controller.setTrackPreference(null);
+                      },
+                    ),
+                    for (final track in snapshot.data ?? <TrackData>[])
+                      TextButton(
+                        child: Text(
+                          "${track.type} ${track.height} ${track.label} ${track.language} ${track.bitrate}",
+                        ),
+                        onPressed: () {
+                          controller.setTrackPreference(track);
+                        },
+                      ),
+                  ],
+                );
+              },
+            ),
+
             Positioned(
               bottom: 100,
               right: 40,
@@ -85,6 +110,22 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   controller.enterPiPMode();
                 },
                 child: Text("PIP"),
+              ),
+            ),
+
+            Positioned(
+              bottom: 100,
+              left: 40,
+              child: ElevatedButton(
+                onPressed: () {
+                  controller.play(
+                    Media(
+                      url:
+                          "https://stream.mux.com/3x5wDUHxkd8NkEfspLUK3OpSQEJe3pom.m3u8?redundant_streams=true",
+                    ),
+                  );
+                },
+                child: Text("MUX"),
               ),
             ),
           ],

@@ -5,9 +5,8 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
-import androidx.media3.common.Tracks
+import androidx.media3.common.Player.STATE_READY
 import androidx.media3.common.VideoSize
-import androidx.media3.common.util.Log
 import androidx.media3.common.util.UnstableApi
 import com.google.ads.interactivemedia.v3.api.AdEvent
 import io.flutter.plugin.common.BinaryMessenger
@@ -58,6 +57,7 @@ class PlayerEventHandler(
     override fun onPlaybackStateChanged(state: Int) {
         super.onPlaybackStateChanged(state)
         listener.onPlaybackUpdate(playerController.getPlaybackStatus()) {}
+        if (state == STATE_READY) listener.onTracksLoaded(playerController.getTracks()) {}
     }
 
 
@@ -96,10 +96,5 @@ class PlayerEventHandler(
     override fun onPlaybackParametersChanged(playbackParameters: PlaybackParameters) {
         super.onPlaybackParametersChanged(playbackParameters)
         listener.onPlaybackSpeedUpdate(playbackParameters.speed.toDouble()) {}
-    }
-
-    override fun onTracksChanged(tracks: Tracks) {
-        super.onTracksChanged(tracks)
-        listener.onTracksLoaded(playerController.getTracks()) {}
     }
 }

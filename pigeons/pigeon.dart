@@ -73,6 +73,8 @@ abstract class PlayerControllerApi {
   void setFit(BoxFitMode fit);
 
   bool isPlayingIMA();
+
+  void setTrackPreference(TrackData? track);
 }
 
 @FlutterApi()

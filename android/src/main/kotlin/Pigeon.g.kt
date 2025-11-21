@@ -516,6 +516,7 @@ interface PlayerControllerApi {
   fun getFit(): BoxFitMode
   fun setFit(fit: BoxFitMode)
   fun isPlayingIMA(): Boolean
+  fun setTrackPreference(track: TrackData?)
 
   companion object {
     /** The codec used by PlayerControllerApi. */
@@ -824,6 +825,24 @@ interface PlayerControllerApi {
           channel.setMessageHandler { _, reply ->
             val wrapped: List<Any?> = try {
               listOf(api.isPlayingIMA())
+            } catch (exception: Throwable) {
+              PigeonPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.kvideo.PlayerControllerApi.setTrackPreference$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val trackArg = args[0] as TrackData?
+            val wrapped: List<Any?> = try {
+              api.setTrackPreference(trackArg)
+              listOf(null)
             } catch (exception: Throwable) {
               PigeonPigeonUtils.wrapError(exception)
             }

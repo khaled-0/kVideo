@@ -6,6 +6,7 @@ import PlaybackStatus
 import PlayerConfiguration
 import PlayerControllerApi
 import TrackData
+import TrackType
 import VideoTextureData
 import android.content.Context
 import android.content.Intent
@@ -20,6 +21,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.Player
+import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.util.Log
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultHttpDataSource
@@ -32,6 +34,7 @@ import androidx.media3.exoplayer.drm.HttpMediaDrmCallback
 import androidx.media3.exoplayer.drm.UnsupportedDrmException
 import androidx.media3.exoplayer.ima.ImaAdsLoader
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
 import androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM
 import androidx.media3.ui.PlayerView
@@ -65,6 +68,8 @@ class PlayerController(
             .setAdEventListener(eventHandler).build()
     }
 
+    val trackSelector = DefaultTrackSelector(context)
+
     init {
         PlayerControllerApi.setUp(binaryMessenger, this, suffix)
     }
@@ -96,6 +101,7 @@ class PlayerController(
                 setSeekForwardIncrementMs(it.seekForwardMs ?: 10_000L)
             }
 
+            setTrackSelector(trackSelector)
 
             /// Handle Audio Focus
             setHandleAudioBecomingNoisy(true)
@@ -268,6 +274,54 @@ class PlayerController(
     }
 
     override fun isPlayingIMA(): Boolean = player.isPlayingAd
+
+    fun TrackType.toExoType(): Int = when (this) {
+        TrackType.AUDIO -> C.TRACK_TYPE_AUDIO
+        TrackType.VIDEO -> C.TRACK_TYPE_VIDEO
+        TrackType.SUBTITLE -> C.TRACK_TYPE_TEXT
+        TrackType.UNKNOWN -> C.TRACK_TYPE_UNKNOWN
+    }
+
+    override fun setTrackPreference(track: TrackData?) {
+        if (track == null) {
+            // Auto Quality
+            return with(trackSelector.buildUponParameters()) {
+                clearOverridesOfType(C.TRACK_TYPE_VIDEO)
+                clearVideoSizeConstraints()
+                trackSelector.parameters = build()
+            }
+        }
+
+        var override: TrackSelectionOverride? = null
+        player.currentTracks.groups.forEach { group ->
+            // Match by TYPE first (Audio/Video/Text)
+            if (group.type == track.type?.toExoType()) {
+                for (trackIndex in 0 until group.length) {
+                    val format = group.getTrackFormat(trackIndex)
+
+                    // Compare fields if they exist
+                    val matches = listOf(
+                        track.language?.let { it == format.language },
+                        track.bitrate?.let { it == format.bitrate.toLong() },
+                        track.width?.let { it == format.width.toLong() },
+                        track.height?.let { it == format.height.toLong() },
+                        track.label?.let { it == format.label },
+                    ).all { it != false }
+
+                    if (!matches) continue
+                    override = TrackSelectionOverride(group.mediaTrackGroup, listOf(trackIndex))
+                    break
+                }
+            }
+        }
+
+        if (override == null) return
+        with(trackSelector.buildUponParameters()) {
+            clearOverridesOfType(override.type)
+            addOverride(override)
+            trackSelector.parameters = build()
+        }
+    }
 
     override fun onSurfaceAvailable() {
         super.onSurfaceAvailable()

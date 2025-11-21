@@ -103,6 +103,10 @@ class PlayerController {
     }
   }
 
+  Future<void> setTrackPreference(TrackData? track) {
+    return _api.setTrackPreference(track);
+  }
+
   Future<void> dispose() {
     _instanceManager.dispose(id);
     PlayerEventListener.setUp(null, messageChannelSuffix: id);
