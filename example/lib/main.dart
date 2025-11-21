@@ -113,6 +113,26 @@ class _PlayerScreenState extends State<PlayerScreen> {
               ),
             ),
 
+            Align(
+              alignment: AlignmentGeometry.bottomCenter,
+              child: Column(
+                children: [
+                  FilledButton(
+                    onPressed: () {
+                      controller.setFit(BoxFit.cover);
+                    },
+                    child: Text("FILL"),
+                  ),
+                  FilledButton(
+                    onPressed: () {
+                      controller.setFit(BoxFit.contain);
+                    },
+                    child: Text("FIT"),
+                  ),
+                ],
+              ),
+            ),
+
             Positioned(
               bottom: 100,
               left: 40,

@@ -496,7 +496,7 @@ interface PlayerInstance {
 }
 /** Generated interface from Pigeon that represents a handler of messages from Flutter. */
 interface PlayerControllerApi {
-  fun init(configuration: PlayerConfiguration?)
+  fun initialize(configuration: PlayerConfiguration?)
   /** Must be called if ViewMode is texture in android. Returns textureId,width,height */
   fun initAndroidTextureView(): VideoTextureData
   fun play(media: Media)
@@ -528,13 +528,13 @@ interface PlayerControllerApi {
     fun setUp(binaryMessenger: BinaryMessenger, api: PlayerControllerApi?, messageChannelSuffix: String = "") {
       val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
       run {
-        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.kvideo.PlayerControllerApi.init$separatedMessageChannelSuffix", codec)
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.kvideo.PlayerControllerApi.initialize$separatedMessageChannelSuffix", codec)
         if (api != null) {
           channel.setMessageHandler { message, reply ->
             val args = message as List<Any?>
             val configurationArg = args[0] as PlayerConfiguration?
             val wrapped: List<Any?> = try {
-              api.init(configurationArg)
+              api.initialize(configurationArg)
               listOf(null)
             } catch (exception: Throwable) {
               PigeonPigeonUtils.wrapError(exception)

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -22,18 +23,38 @@ class PlayerView extends StatelessWidget {
   Widget build(BuildContext context) {
     const String viewType = "dev.khaled.kvideo";
 
-    if (controller.androidViewMode == AndroidViewMode.texture) {
-      return ValueListenableBuilder(
-        valueListenable: controller.textureParams,
-        builder: (_, value, _) {
-          if (value.size.isEmpty) return SizedBox();
-          return AspectRatio(
-            aspectRatio: value.size.aspectRatio,
-            child: Texture(textureId: value.textureId ?? -1),
-          );
-        },
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      return UiKitView(
+        viewType: viewType,
+        creationParams: controller.id,
+        layoutDirection: Directionality.maybeOf(context) ?? TextDirection.ltr,
+        creationParamsCodec: PlayerControllerApi.pigeonChannelCodec,
       );
     }
+
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      if (controller.androidViewMode == AndroidViewMode.texture) {
+        return ValueListenableBuilder(
+          valueListenable: controller.textureParams,
+          builder: (_, value, _) {
+            if (value.size.isEmpty) return SizedBox();
+            return AspectRatio(
+              aspectRatio: value.size.aspectRatio,
+              child: Texture(textureId: value.textureId ?? -1),
+            );
+          },
+        );
+      }
+
+      return AndroidView(
+        viewType: viewType,
+        creationParams: controller.id,
+        layoutDirection: Directionality.maybeOf(context) ?? TextDirection.ltr,
+        creationParamsCodec: PlayerControllerApi.pigeonChannelCodec,
+      );
+    }
+
+    throw UnimplementedError("Unsupported platform: $defaultTargetPlatform");
 
     return PlatformViewLink(
       viewType: viewType,

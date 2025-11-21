@@ -47,7 +47,7 @@ class PlayerController {
 
   Future<void> initialize({PlayerConfiguration? configuration}) async {
     await _instanceManager.create(id);
-    await _api.init(configuration);
+    await _api.initialize(configuration);
     PlayerEventListener.setUp(state, messageChannelSuffix: id);
 
     if (androidViewMode == AndroidViewMode.texture) {

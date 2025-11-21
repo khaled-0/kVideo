@@ -1,0 +1,35 @@
+PODS:
+  - Flutter (1.0.0)
+  - GoogleAds-IMA-iOS-SDK (3.28.10)
+  - integration_test (0.0.1):
+    - Flutter
+  - kvideo (0.0.1):
+    - Flutter
+    - GoogleAds-IMA-iOS-SDK (~> 3.28.10)
+
+DEPENDENCIES:
+  - Flutter (from `Flutter`)
+  - integration_test (from `.symlinks/plugins/integration_test/ios`)
+  - kvideo (from `.symlinks/plugins/kvideo/ios`)
+
+SPEC REPOS:
+  trunk:
+    - GoogleAds-IMA-iOS-SDK
+
+EXTERNAL SOURCES:
+  Flutter:
+    :path: Flutter
+  integration_test:
+    :path: ".symlinks/plugins/integration_test/ios"
+  kvideo:
+    :path: ".symlinks/plugins/kvideo/ios"
+
+SPEC CHECKSUMS:
+  Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
+  GoogleAds-IMA-iOS-SDK: 2d7d6e4736a5b29c21e5067fdd75f500144e1dcd
+  integration_test: 252f60fa39af5e17c3aa9899d35d908a0721b573
+  kvideo: b561d65bf412deda5293361dc9e137a52694fdf2
+
+PODFILE CHECKSUM: 53a6aebc29ccee84c41f92f409fc20cd4ca011f1
+
+COCOAPODS: 1.16.2

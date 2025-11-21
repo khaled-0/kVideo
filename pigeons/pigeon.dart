@@ -11,8 +11,8 @@ import 'package:pigeon/pigeon.dart';
     dartOptions: DartOptions(),
     kotlinOut: 'android/src/main/kotlin/Pigeon.g.kt',
     kotlinOptions: KotlinOptions(),
-    // swiftOut: 'ios/Runner/Messages.g.swift',
-    // swiftOptions: SwiftOptions(),
+    swiftOut: 'ios/Classes/Pigeon.g.swift',
+    swiftOptions: SwiftOptions(),
   ),
 )
 @HostApi()
@@ -35,7 +35,7 @@ class VideoTextureData {
 
 @HostApi()
 abstract class PlayerControllerApi {
-  void init(PlayerConfiguration? configuration);
+  void initialize(PlayerConfiguration? configuration);
 
   /// Must be called if ViewMode is texture in android. Returns textureId,width,height
   VideoTextureData initAndroidTextureView();

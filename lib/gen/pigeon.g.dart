@@ -541,8 +541,8 @@ class PlayerControllerApi {
 
   final String pigeonVar_messageChannelSuffix;
 
-  Future<void> init(PlayerConfiguration? configuration) async {
-    final String pigeonVar_channelName = 'dev.flutter.pigeon.kvideo.PlayerControllerApi.init$pigeonVar_messageChannelSuffix';
+  Future<void> initialize(PlayerConfiguration? configuration) async {
+    final String pigeonVar_channelName = 'dev.flutter.pigeon.kvideo.PlayerControllerApi.initialize$pigeonVar_messageChannelSuffix';
     final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,

@@ -75,7 +75,7 @@ class PlayerController(
     }
 
 
-    override fun init(configuration: PlayerConfiguration?) {
+    override fun initialize(configuration: PlayerConfiguration?) {
         if (configuration?.initializeIMA != false) {
             try {
                 ImaSdkFactory.getInstance().initialize(context, imaSdkSettings!!.value)
