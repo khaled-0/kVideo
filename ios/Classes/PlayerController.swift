@@ -11,7 +11,10 @@ import Flutter
 import Foundation
 import UIKit
 
-public class PlayerController: NSObject, PlayerControllerApi {
+public class PlayerController: NSObject, FlutterPlatformView,
+    PlayerViewDelegate, AVPictureInPictureControllerDelegate,
+    PlayerControllerApi
+{
 
     // ---------------------------------------------------------------------
     // MARK: - Properties
@@ -21,14 +24,14 @@ public class PlayerController: NSObject, PlayerControllerApi {
     let messenger: FlutterBinaryMessenger
 
     var player = AVPlayer()
-    var playerItem: AVPlayerItem?
-    var playerLayer: AVPlayerLayer
-
     private var eventHandler: PlayerEventHandler!
+    var playerItem: AVPlayerItem?
+    var tracks: [TrackData] = []
 
-    // PiP
+    var playerView: PlayerView = PlayerView(frame: CGRect.zero)
+    public func view() -> UIView { return playerView }
+
     private var pipController: AVPictureInPictureController?
-    private var pipPossibleObservation: NSKeyValueObservation?
 
     // ---------------------------------------------------------------------
     // MARK: - Init
@@ -40,9 +43,10 @@ public class PlayerController: NSObject, PlayerControllerApi {
     ) {
         self.suffix = suffix
         self.messenger = messenger
-
         super.init()
 
+        playerView.player = player
+        playerView.delegate = self
         eventHandler = PlayerEventHandler(
             messenger: messenger,
             controller: self
@@ -61,8 +65,12 @@ public class PlayerController: NSObject, PlayerControllerApi {
     func initialize(configuration: PlayerConfiguration?) throws {
         // TODO: AVPlayer has different buffering & seek config than ExoPlayer
         // Apply some analogous configuration where applicable
+        player.audiovisualBackgroundPlaybackPolicy = .continuesIfPossible
 
-        try? setupPiPIfPossible()
+        pipController = AVPictureInPictureController(
+            playerLayer: playerView.playerLayer
+        )
+        pipController?.delegate = self
     }
 
     func play(media: Media) throws {
@@ -83,6 +91,10 @@ public class PlayerController: NSObject, PlayerControllerApi {
 
         player.replaceCurrentItem(with: item)
         player.play()
+
+        fetchAllTrackData(for: url) { tracks in
+            self.tracks = tracks
+        }
     }
 
     func stop() throws { player.pause() }
@@ -119,15 +131,17 @@ public class PlayerController: NSObject, PlayerControllerApi {
     // ---------------------------------------------------------------------
 
     func getFit() throws -> BoxFitMode {
-        if playerLayer.videoGravity == .resizeAspectFill { return .fill }
+        if playerView.playerLayer.videoGravity == .resizeAspectFill {
+            return .fill
+        }
         return .fit
     }
 
     func setFit(fit: BoxFitMode) throws {
         if fit == .fill {
-            playerLayer.videoGravity = .resizeAspectFill
+            playerView.playerLayer.videoGravity = .resizeAspectFill
         } else {
-            playerLayer.videoGravity = .resizeAspect
+            playerView.playerLayer.videoGravity = .resizeAspect
         }
     }
 
@@ -135,21 +149,7 @@ public class PlayerController: NSObject, PlayerControllerApi {
     // MARK: - Tracks (Video / Audio / Subtitle)
     // ---------------------------------------------------------------------
 
-    func getTracks() throws -> [TrackData] {
-        guard let item = player.currentItem else { return [] }
-
-        return item.tracks.map { track in
-            TrackData(
-                id: track.assetTrack.map { String($0.trackID) },
-                type: mapTrackType(track),
-                language: track.assetTrack?.languageCode,
-                label: track.assetTrack?.extendedLanguageTag,
-                bitrate: track.assetTrack.map { Int64($0.estimatedDataRate) },
-                width: track.assetTrack.map { Int64($0.naturalSize.width) },
-                height: track.assetTrack.map { Int64($0.naturalSize.height) }
-            )
-        }
-    }
+    func getTracks() throws -> [TrackData] { return tracks }
 
     private func mapTrackType(_ track: AVPlayerItemTrack) -> TrackType {
         guard let mediaType = track.assetTrack?.mediaType else {
@@ -197,26 +197,9 @@ public class PlayerController: NSObject, PlayerControllerApi {
 
     func enterPiPMode() throws {
         guard AVPictureInPictureController.isPictureInPictureSupported() else {
-            return
+            return print("Picture In Picture is unsupported")
         }
-
-        pipController = AVPictureInPictureController(playerLayer: playerLayer)
         pipController?.startPictureInPicture()
-    }
-
-    private func setupPiPIfPossible() throws {
-        guard AVPictureInPictureController.isPictureInPictureSupported() else {
-            return
-        }
-        pipPossibleObservation = playerLayer.observe(
-            \.isReadyForDisplay,
-            options: [.new]
-        ) { [weak self] _, _ in
-            guard let self = self else { return }
-            self.pipController = AVPictureInPictureController(
-                playerLayer: self.playerLayer
-            )
-        }
     }
 
     // ---------------------------------------------------------------------
@@ -244,4 +227,74 @@ public class PlayerController: NSObject, PlayerControllerApi {
         return false  // TODO:
     }
 
+    func playerViewDidMoveToWindow() {
+
+    }
+
+}
+
+extension PlayerController {
+    func fetchAllTrackData(
+        for url: URL,
+        completion: @escaping ([TrackData]) -> Void
+    ) {
+        let asset = AVURLAsset(url: url)
+
+        let keys = [
+            "availableMediaCharacteristicsWithMediaSelectionOptions",
+            "variants",
+        ]
+
+        asset.loadValuesAsynchronously(forKeys: keys) {
+            var trackDataList: [TrackData] = []
+
+            // Audio tracks
+            if let audioGroup = asset.mediaSelectionGroup(
+                forMediaCharacteristic: .audible
+            ) {
+                for option in audioGroup.options {
+                    var data = TrackData()
+                    data.id = UUID().uuidString
+                    data.type = .audio
+                    data.language = option.locale?.languageCode
+                    data.label = option.displayName
+                    trackDataList.append(data)
+                }
+            }
+
+            // Subtitle tracks
+            if let subtitleGroup = asset.mediaSelectionGroup(
+                forMediaCharacteristic: .legible
+            ) {
+                for option in subtitleGroup.options {
+                    var data = TrackData()
+                    data.id = UUID().uuidString
+                    data.type = .subtitle
+                    data.language = option.locale?.languageCode
+                    data.label = option.displayName
+                    trackDataList.append(data)
+                }
+            }
+
+            // Video tracks (variants)
+            if let variants = asset.variants as? [AVAssetVariant] {
+                for variant in variants {
+                    guard let videoAttributes = variant.videoAttributes else {
+                        continue
+                    }
+
+                    var data = TrackData()
+                    data.id = UUID().uuidString
+                    data.type = .video
+                    data.bitrate = Int64(variant.peakBitRate ?? 0)
+                    data.width = Int64(videoAttributes.presentationSize.width)
+                    data.height = Int64(videoAttributes.presentationSize.height)
+                    trackDataList.append(data)
+                }
+            }
+
+            print(trackDataList)
+            completion(trackDataList)
+        }
+    }
 }

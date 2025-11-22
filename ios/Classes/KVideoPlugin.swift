@@ -62,9 +62,7 @@ class PlayerFactory: NSObject, FlutterPlatformViewFactory {
         arguments args: Any?
     ) -> FlutterPlatformView {
         let id = args as! String
-        let controller = getController(id)
-
-        return PlayerView(controller: controller, frame: frame)
+        return getController(id) as! FlutterPlatformView
     }
 
     public func createArgsCodec() -> FlutterMessageCodec & NSObjectProtocol {
@@ -72,35 +70,60 @@ class PlayerFactory: NSObject, FlutterPlatformViewFactory {
     }
 }
 
-class PlayerView: UIView, FlutterPlatformView {
+protocol PlayerViewDelegate: AnyObject {
+    func playerViewDidMoveToWindow()
+}
 
-    // Override the property to make AVPlayerLayer the view's backing layer.
-    override static var layerClass: AnyClass { AVPlayerLayer.self }
-
-    // The associated player object.
+class PlayerView: UIView {
+    
+    weak var delegate: PlayerViewDelegate?
+    
+    // MARK: - Player & Layer
     var player: AVPlayer? {
         get { playerLayer.player }
         set { playerLayer.player = newValue }
     }
-
+    
     var playerLayer: AVPlayerLayer {
         return layer as! AVPlayerLayer
     }
-
-    private var controller: PlayerController
-
-    init(controller: PlayerController, frame: CGRect) {
-        self.controller = controller
+    
+    // MARK: - Ad Container
+    let adContainerView: UIView = {
+        let view = UIView()
+        view.backgroundColor = .clear
+        return view
+    }()
+    
+    // MARK: - Init
+    override init(frame: CGRect) {
         super.init(frame: frame)
-        self.player = controller.player
-        controller.playerLayer = playerLayer
+        setupAdContainer()
     }
-
+    
     required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
+        super.init(coder: coder)
+        setupAdContainer()
     }
-
-    func view() -> UIView { return self }
-
-    func dispose() {}
+    
+    private func setupAdContainer() {
+        adContainerView.frame = bounds
+        adContainerView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        addSubview(adContainerView)
+    }
+    
+    // MARK: - Layer
+    override class var layerClass: AnyClass {
+        return AVPlayerLayer.self
+    }
+    
+    // MARK: - Lifecycle
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        
+        if window != nil {
+            delegate?.playerViewDidMoveToWindow()
+        }
+    }
 }
+

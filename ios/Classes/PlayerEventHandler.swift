@@ -76,21 +76,15 @@ extension PlayerEventHandler {
             guard let self = self, let controller = self.controller else {
                 return
             }
+            if player.status == .readyToPlay {
+                disableSubtitles(for: player.currentItem!)
+                self.listener.onTracksLoaded(
+                    tracks: (try? controller.getTracks()) ?? []
+                ) { _ in }
+            }
+
             self.listener.onPlaybackUpdate(
                 status: (try? controller.getPlaybackStatus()) ?? .finished
-            ) { _ in }
-        }
-
-        // Video size change
-        videoSizeObserver = controller.playerLayer.observe(
-            \.videoRect,
-            options: [.new]
-        ) { [weak self] layer, _ in
-            guard let self = self else { return }
-            let size = layer.videoRect.size
-            self.listener.onVideoSizeUpdate(
-                width: Int64(size.width),
-                height: Int64(size.height)
             ) { _ in }
         }
 
@@ -151,5 +145,16 @@ extension PlayerEventHandler {
         errorObserver = nil
 
         NotificationCenter.default.removeObserver(self)
+    }
+}
+
+extension PlayerEventHandler {
+    private func disableSubtitles(for item: AVPlayerItem) {
+        let asset = item.asset
+        if let group = asset.mediaSelectionGroup(
+            forMediaCharacteristic: .legible
+        ) {
+            item.select(nil, in: group)
+        }
     }
 }
