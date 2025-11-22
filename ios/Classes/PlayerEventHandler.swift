@@ -78,9 +78,7 @@ extension PlayerEventHandler {
             }
             if player.status == .readyToPlay {
                 disableSubtitles(for: player.currentItem!)
-                self.listener.onTracksLoaded(
-                    tracks: (try? controller.getTracks()) ?? []
-                ) { _ in }
+                self.listener.onTracksLoaded(tracks:(try? controller.getTracks()) ?? []) { _ in }
             }
 
             self.listener.onPlaybackUpdate(

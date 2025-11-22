@@ -164,9 +164,42 @@ public class PlayerController: NSObject, FlutterPlatformView,
     }
 
     func setTrackPreference(track: TrackData?) throws {
-        // TODO:
-        // AVPlayer does not support manual track selection without AVMutableComposition
-        // Implementable if needed — I can add full working code.
+        guard let playerItem = player.currentItem else { return }
+
+        guard let trackData = track else {
+            playerItem.preferredPeakBitRate = 0
+            playerItem.preferredMaximumResolution = .zero
+            return
+        }
+
+        if trackData.type == .audio {
+            if let audioGroup = playerItem.asset.mediaSelectionGroup(
+                forMediaCharacteristic: .audible
+            ) {
+                // Find the audio option by language or label
+                if let option = audioGroup.options.first(where: {
+                    $0.locale?.languageCode == trackData.language
+                        || $0.displayName == trackData.label
+                }) {
+                    playerItem.select(option, in: audioGroup)
+                } else {
+                    playerItem.select(nil, in: audioGroup)
+                }
+            }
+        }
+
+        if trackData.type == .video {
+            if let bitrate = trackData.bitrate {
+                playerItem.preferredPeakBitRate = Double(bitrate)
+            }
+
+            if let width = trackData.width, let height = trackData.height {
+                playerItem.preferredMaximumResolution = CGSize(
+                    width: Double(width),
+                    height: Double(height)
+                )
+            }
+        }
     }
 
     // ---------------------------------------------------------------------
@@ -254,7 +287,6 @@ extension PlayerController {
             ) {
                 for option in audioGroup.options {
                     var data = TrackData()
-                    data.id = UUID().uuidString
                     data.type = .audio
                     data.language = option.locale?.languageCode
                     data.label = option.displayName
@@ -268,7 +300,6 @@ extension PlayerController {
             ) {
                 for option in subtitleGroup.options {
                     var data = TrackData()
-                    data.id = UUID().uuidString
                     data.type = .subtitle
                     data.language = option.locale?.languageCode
                     data.label = option.displayName
@@ -284,7 +315,6 @@ extension PlayerController {
                     }
 
                     var data = TrackData()
-                    data.id = UUID().uuidString
                     data.type = .video
                     data.bitrate = Int64(variant.peakBitRate ?? 0)
                     data.width = Int64(videoAttributes.presentationSize.width)
@@ -293,7 +323,6 @@ extension PlayerController {
                 }
             }
 
-            print(trackDataList)
             completion(trackDataList)
         }
     }
