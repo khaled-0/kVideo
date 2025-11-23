@@ -10,6 +10,7 @@ import androidx.annotation.OptIn
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 
 
@@ -32,7 +33,6 @@ class PiPActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return finishAndRemoveTask()
         if (!packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)) return finishAndRemoveTask()
 
         val playerView = PlayerView(this)
@@ -41,6 +41,7 @@ class PiPActivity : ComponentActivity() {
         with(playerView) {
             useController = false
             setShowBuffering(PlayerView.SHOW_BUFFERING_ALWAYS)
+            resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
             player = controller.player
         }
 

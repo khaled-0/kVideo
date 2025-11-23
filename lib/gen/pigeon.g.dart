@@ -119,6 +119,8 @@ class Media {
   Media({
     required this.url,
     this.drmLicenseUrl,
+    this.drmCertificate,
+    this.subtitles,
     this.startFromSecond,
     this.headers,
     this.imaTagUrl,
@@ -129,6 +131,12 @@ class Media {
 
   /// Widevine License URL if the media is DRM protected
   String? drmLicenseUrl;
+
+  /// Fairplay certificate. Can be either URL or Base64 encoded certificate
+  String? drmCertificate;
+
+  /// External subtitles url
+  List<String>? subtitles;
 
   /// Where to start media from (in seconds)
   int? startFromSecond;
@@ -143,6 +151,8 @@ class Media {
     return <Object?>[
       url,
       drmLicenseUrl,
+      drmCertificate,
+      subtitles,
       startFromSecond,
       headers,
       imaTagUrl,
@@ -157,9 +167,11 @@ class Media {
     return Media(
       url: result[0]! as String,
       drmLicenseUrl: result[1] as String?,
-      startFromSecond: result[2] as int?,
-      headers: (result[3] as Map<Object?, Object?>?)?.cast<String, String>(),
-      imaTagUrl: result[4] as String?,
+      drmCertificate: result[2] as String?,
+      subtitles: (result[3] as List<Object?>?)?.cast<String>(),
+      startFromSecond: result[4] as int?,
+      headers: (result[5] as Map<Object?, Object?>?)?.cast<String, String>(),
+      imaTagUrl: result[6] as String?,
     );
   }
 
@@ -1041,7 +1053,11 @@ class PlayerControllerApi {
 abstract class PlayerEventListener {
   static const MessageCodec<Object?> pigeonChannelCodec = _PigeonCodec();
 
+  /// Only used for AndroidViewMode.texture
   void onVideoSizeUpdate(int width, int height);
+
+  /// Only used for AndroidViewMode.texture
+  void onReceiveSubtitle(String? text);
 
   void onDurationUpdate(int durationSecond);
 
@@ -1080,6 +1096,29 @@ abstract class PlayerEventListener {
               'Argument for dev.flutter.pigeon.kvideo.PlayerEventListener.onVideoSizeUpdate was null, expected non-null int.');
           try {
             api.onVideoSizeUpdate(arg_width!, arg_height!);
+            return wrapResponse(empty: true);
+          } on PlatformException catch (e) {
+            return wrapResponse(error: e);
+          }          catch (e) {
+            return wrapResponse(error: PlatformException(code: 'error', message: e.toString()));
+          }
+        });
+      }
+    }
+    {
+      final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
+          'dev.flutter.pigeon.kvideo.PlayerEventListener.onReceiveSubtitle$messageChannelSuffix', pigeonChannelCodec,
+          binaryMessenger: binaryMessenger);
+      if (api == null) {
+        pigeonVar_channel.setMessageHandler(null);
+      } else {
+        pigeonVar_channel.setMessageHandler((Object? message) async {
+          assert(message != null,
+          'Argument for dev.flutter.pigeon.kvideo.PlayerEventListener.onReceiveSubtitle was null.');
+          final List<Object?> args = (message as List<Object?>?)!;
+          final String? arg_text = (args[0] as String?);
+          try {
+            api.onReceiveSubtitle(arg_text);
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);

@@ -195,6 +195,10 @@ struct Media: Hashable {
   var url: String
   /// Widevine License URL if the media is DRM protected
   var drmLicenseUrl: String? = nil
+  /// Fairplay certificate. Can be either URL or Base64 encoded certificate
+  var drmCertificate: String? = nil
+  /// External subtitles url
+  var subtitles: [String]? = nil
   /// Where to start media from (in seconds)
   var startFromSecond: Int64? = nil
   /// Player headers
@@ -207,13 +211,17 @@ struct Media: Hashable {
   static func fromList(_ pigeonVar_list: [Any?]) -> Media? {
     let url = pigeonVar_list[0] as! String
     let drmLicenseUrl: String? = nilOrValue(pigeonVar_list[1])
-    let startFromSecond: Int64? = nilOrValue(pigeonVar_list[2])
-    let headers: [String: String]? = nilOrValue(pigeonVar_list[3])
-    let imaTagUrl: String? = nilOrValue(pigeonVar_list[4])
+    let drmCertificate: String? = nilOrValue(pigeonVar_list[2])
+    let subtitles: [String]? = nilOrValue(pigeonVar_list[3])
+    let startFromSecond: Int64? = nilOrValue(pigeonVar_list[4])
+    let headers: [String: String]? = nilOrValue(pigeonVar_list[5])
+    let imaTagUrl: String? = nilOrValue(pigeonVar_list[6])
 
     return Media(
       url: url,
       drmLicenseUrl: drmLicenseUrl,
+      drmCertificate: drmCertificate,
+      subtitles: subtitles,
       startFromSecond: startFromSecond,
       headers: headers,
       imaTagUrl: imaTagUrl
@@ -223,6 +231,8 @@ struct Media: Hashable {
     return [
       url,
       drmLicenseUrl,
+      drmCertificate,
+      subtitles,
       startFromSecond,
       headers,
       imaTagUrl,
@@ -819,7 +829,10 @@ class PlayerControllerApiSetup {
 }
 /// Generated protocol from Pigeon that represents Flutter messages that can be called from Swift.
 protocol PlayerEventListenerProtocol {
+  /// Only used for AndroidViewMode.texture
   func onVideoSizeUpdate(width widthArg: Int64, height heightArg: Int64, completion: @escaping (Result<Void, PigeonError>) -> Void)
+  /// Only used for AndroidViewMode.texture
+  func onReceiveSubtitle(text textArg: String?, completion: @escaping (Result<Void, PigeonError>) -> Void)
   func onDurationUpdate(durationSecond durationSecondArg: Int64, completion: @escaping (Result<Void, PigeonError>) -> Void)
   func onProgressUpdate(second secondArg: Int64, completion: @escaping (Result<Void, PigeonError>) -> Void)
   func onBufferUpdate(second secondArg: Int64, completion: @escaping (Result<Void, PigeonError>) -> Void)
@@ -839,10 +852,30 @@ class PlayerEventListener: PlayerEventListenerProtocol {
   var codec: PigeonPigeonCodec {
     return PigeonPigeonCodec.shared
   }
+  /// Only used for AndroidViewMode.texture
   func onVideoSizeUpdate(width widthArg: Int64, height heightArg: Int64, completion: @escaping (Result<Void, PigeonError>) -> Void) {
     let channelName: String = "dev.flutter.pigeon.kvideo.PlayerEventListener.onVideoSizeUpdate\(messageChannelSuffix)"
     let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
     channel.sendMessage([widthArg, heightArg] as [Any?]) { response in
+      guard let listResponse = response as? [Any?] else {
+        completion(.failure(createConnectionError(withChannelName: channelName)))
+        return
+      }
+      if listResponse.count > 1 {
+        let code: String = listResponse[0] as! String
+        let message: String? = nilOrValue(listResponse[1])
+        let details: String? = nilOrValue(listResponse[2])
+        completion(.failure(PigeonError(code: code, message: message, details: details)))
+      } else {
+        completion(.success(()))
+      }
+    }
+  }
+  /// Only used for AndroidViewMode.texture
+  func onReceiveSubtitle(text textArg: String?, completion: @escaping (Result<Void, PigeonError>) -> Void) {
+    let channelName: String = "dev.flutter.pigeon.kvideo.PlayerEventListener.onReceiveSubtitle\(messageChannelSuffix)"
+    let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
+    channel.sendMessage([textArg] as [Any?]) { response in
       guard let listResponse = response as? [Any?] else {
         completion(.failure(createConnectionError(withChannelName: channelName)))
         return

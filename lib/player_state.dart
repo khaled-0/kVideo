@@ -1,5 +1,5 @@
-import 'package:flutter/cupertino.dart';
-import 'package:kvideo/controller.dart';
+import 'package:flutter/widgets.dart';
+import 'package:kvideo/player_controller.dart';
 
 import 'gen/pigeon.g.dart';
 
@@ -11,6 +11,8 @@ class PlayerState implements PlayerEventListener {
 
   final ValueNotifier<Media?> nowPlaying = ValueNotifier(null);
   final ValueNotifier<Duration> progress = ValueNotifier(Duration.zero);
+  final ValueNotifier<String?> textureSubtitles = ValueNotifier(null);
+  final ValueNotifier<String?> error = ValueNotifier(null);
 
   @override
   void onBufferUpdate(int second) {
@@ -29,7 +31,7 @@ class PlayerState implements PlayerEventListener {
 
   @override
   void onPlaybackError(String error) {
-    // TODO: implement onPlaybackError
+    this.error.value = error;
   }
 
   @override
@@ -50,6 +52,11 @@ class PlayerState implements PlayerEventListener {
   @override
   void onTracksLoaded(List<TrackData> tracks) {
     // TODO: implement onTracksLoaded
+  }
+
+  @override
+  void onReceiveSubtitle(String? text) {
+    textureSubtitles.value = text;
   }
 
   @override

@@ -161,6 +161,10 @@ data class Media (
   val url: String,
   /** Widevine License URL if the media is DRM protected */
   val drmLicenseUrl: String? = null,
+  /** Fairplay certificate. Can be either URL or Base64 encoded certificate */
+  val drmCertificate: String? = null,
+  /** External subtitles url */
+  val subtitles: List<String>? = null,
   /** Where to start media from (in seconds) */
   val startFromSecond: Long? = null,
   /** Player headers */
@@ -173,16 +177,20 @@ data class Media (
     fun fromList(pigeonVar_list: List<Any?>): Media {
       val url = pigeonVar_list[0] as String
       val drmLicenseUrl = pigeonVar_list[1] as String?
-      val startFromSecond = pigeonVar_list[2] as Long?
-      val headers = pigeonVar_list[3] as Map<String, String>?
-      val imaTagUrl = pigeonVar_list[4] as String?
-      return Media(url, drmLicenseUrl, startFromSecond, headers, imaTagUrl)
+      val drmCertificate = pigeonVar_list[2] as String?
+      val subtitles = pigeonVar_list[3] as List<String>?
+      val startFromSecond = pigeonVar_list[4] as Long?
+      val headers = pigeonVar_list[5] as Map<String, String>?
+      val imaTagUrl = pigeonVar_list[6] as String?
+      return Media(url, drmLicenseUrl, drmCertificate, subtitles, startFromSecond, headers, imaTagUrl)
     }
   }
   fun toList(): List<Any?> {
     return listOf(
       url,
       drmLicenseUrl,
+      drmCertificate,
+      subtitles,
       startFromSecond,
       headers,
       imaTagUrl,
@@ -863,12 +871,31 @@ class PlayerEventListener(private val binaryMessenger: BinaryMessenger, private 
       PigeonPigeonCodec()
     }
   }
+  /** Only used for AndroidViewMode.texture */
   fun onVideoSizeUpdate(widthArg: Long, heightArg: Long, callback: (Result<Unit>) -> Unit)
 {
     val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
     val channelName = "dev.flutter.pigeon.kvideo.PlayerEventListener.onVideoSizeUpdate$separatedMessageChannelSuffix"
     val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
     channel.send(listOf(widthArg, heightArg)) {
+      if (it is List<*>) {
+        if (it.size > 1) {
+          callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))
+        } else {
+          callback(Result.success(Unit))
+        }
+      } else {
+        callback(Result.failure(PigeonPigeonUtils.createConnectionError(channelName)))
+      } 
+    }
+  }
+  /** Only used for AndroidViewMode.texture */
+  fun onReceiveSubtitle(textArg: String?, callback: (Result<Unit>) -> Unit)
+{
+    val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
+    val channelName = "dev.flutter.pigeon.kvideo.PlayerEventListener.onReceiveSubtitle$separatedMessageChannelSuffix"
+    val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
+    channel.send(listOf(textArg)) {
       if (it is List<*>) {
         if (it.size > 1) {
           callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))

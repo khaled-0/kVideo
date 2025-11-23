@@ -79,7 +79,11 @@ abstract class PlayerControllerApi {
 
 @FlutterApi()
 abstract class PlayerEventListener {
+  /// Only used for AndroidViewMode.texture
   void onVideoSizeUpdate(int width, int height);
+
+  /// Only used for AndroidViewMode.texture
+  void onReceiveSubtitle(String? text);
 
   void onDurationUpdate(int durationSecond);
 
@@ -105,6 +109,12 @@ class Media {
   /// Widevine License URL if the media is DRM protected
   final String? drmLicenseUrl;
 
+  /// Fairplay certificate. Can be either URL or Base64 encoded certificate
+  final String? drmCertificate;
+
+  /// External subtitles url
+  final List<String>? subtitles;
+
   /// Where to start media from (in seconds)
   final int? startFromSecond;
 
@@ -117,9 +127,11 @@ class Media {
   Media({
     required this.url,
     this.drmLicenseUrl,
+    this.drmCertificate,
     this.startFromSecond,
     this.headers,
     this.imaTagUrl,
+    this.subtitles,
   });
 }
 

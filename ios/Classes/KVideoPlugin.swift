@@ -70,31 +70,29 @@ class PlayerFactory: NSObject, FlutterPlatformViewFactory {
     }
 }
 
-protocol PlayerViewDelegate: AnyObject {
+protocol PlayerViewDelegate: NSObject {
     func playerViewDidMoveToWindow()
 }
 
 class PlayerView: UIView {
-    
+
     weak var delegate: PlayerViewDelegate?
-    
+
     // MARK: - Player & Layer
     var player: AVPlayer? {
         get { playerLayer.player }
         set { playerLayer.player = newValue }
     }
-    
-    var playerLayer: AVPlayerLayer {
-        return layer as! AVPlayerLayer
-    }
-    
+
+    var playerLayer: AVPlayerLayer { return layer as! AVPlayerLayer }
+
     // MARK: - Ad Container
     let adContainerView: UIView = {
         let view = UIView()
         view.backgroundColor = .clear
         return view
     }()
-    
+
     // MARK: - Init
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -102,8 +100,7 @@ class PlayerView: UIView {
     }
     
     required init?(coder: NSCoder) {
-        super.init(coder: coder)
-        setupAdContainer()
+        fatalError("init(coder:) has not been implemented")
     }
     
     private func setupAdContainer() {
@@ -111,19 +108,13 @@ class PlayerView: UIView {
         adContainerView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         addSubview(adContainerView)
     }
-    
+
     // MARK: - Layer
-    override class var layerClass: AnyClass {
-        return AVPlayerLayer.self
-    }
-    
+    override class var layerClass: AnyClass { return AVPlayerLayer.self }
+
     // MARK: - Lifecycle
     override func didMoveToWindow() {
         super.didMoveToWindow()
-        
-        if window != nil {
-            delegate?.playerViewDidMoveToWindow()
-        }
+        if window != nil { delegate?.playerViewDidMoveToWindow() }
     }
 }
-

@@ -9,7 +9,14 @@ void main() {
     "https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8",
   ];
   controller.initialize().then((_) {
-    controller.play(Media(url: urls[0]));
+    controller.play(
+      Media(
+        url: urls[0],
+        subtitles: [
+          "https://gist.githubusercontent.com/matibzurovski/d690d5c14acbaa399e7f0829f9d6888e/raw/63578ca30e7430be1fa4942d4d8dd599f78151c7/example.srt",
+        ],
+      ),
+    );
   });
 
   // runApp(Center(child: PlayerView(controller)));
@@ -36,51 +43,18 @@ class _PlayerScreenState extends State<PlayerScreen> {
       body: GestureDetector(
         child: Stack(
           children: [
-            Positioned(top: 100, child: Text("Behind")),
-            Positioned(
-              top: _offset.dy,
-              left: _offset.dx,
-              child: SizedBox(
-                height: 400,
-                width: 400,
-                child: Hero(
-                  tag: "v",
-                  child: ClipRRect(
-                    borderRadius: BorderRadiusGeometry.circular(100),
-                    child: show ? Center(child: widget.child) : SizedBox(),
-                  ),
-                ),
-              ),
-            ),
-
-            Positioned(bottom: 100, child: Text("Above")),
-
-            Center(
-              child: ElevatedButton(
-                onPressed: () {
-                  setState(() {
-                    show = false;
-                  });
-
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => Hero(tag: "v", child: widget.child),
-                    ),
-                  ).whenComplete(() {
-                    setState(() {
-                      show = true;
-                    });
-                  });
+            Align(
+              child: ValueListenableBuilder(
+                valueListenable: controller.state.error,
+                builder: (context, value, child) {
+                  return Text(value ?? "");
                 },
-                child: Text("Hero"),
               ),
             ),
-
             FutureBuilder(
               future: controller.getTracks(),
               builder: (context, snapshot) {
-                return Column(
+                return ListView(
                   children: [
                     TextButton(
                       child: Text("Auto"),
@@ -103,7 +77,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
             ),
 
             Positioned(
-              bottom: 100,
+              bottom: 8,
               right: 40,
               child: ElevatedButton(
                 onPressed: () {
@@ -114,8 +88,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
             ),
 
             Align(
-              alignment: AlignmentGeometry.bottomCenter,
+              alignment: Alignment.bottomCenter,
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   FilledButton(
                     onPressed: () {
@@ -123,6 +98,27 @@ class _PlayerScreenState extends State<PlayerScreen> {
                     },
                     child: Text("FILL"),
                   ),
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        show = false;
+                      });
+
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              Hero(tag: "v", child: widget.child),
+                        ),
+                      ).whenComplete(() {
+                        setState(() {
+                          show = true;
+                        });
+                      });
+                    },
+                    child: Text("Hero"),
+                  ),
+
                   FilledButton(
                     onPressed: () {
                       controller.setFit(BoxFit.contain);
@@ -134,7 +130,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
             ),
 
             Positioned(
-              bottom: 100,
+              bottom: 8,
               left: 40,
               child: ElevatedButton(
                 onPressed: () {
@@ -146,6 +142,19 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   );
                 },
                 child: Text("MUX"),
+              ),
+            ),
+
+            Positioned(
+              top: _offset.dy,
+              left: _offset.dx,
+              child: SizedBox(
+                height: 200,
+                width: 200,
+                child: Hero(
+                  tag: "v",
+                  child: show ? Center(child: widget.child) : SizedBox(),
+                ),
               ),
             ),
           ],

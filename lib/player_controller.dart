@@ -1,8 +1,9 @@
 import 'dart:async';
 
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/widgets.dart';
 import 'package:kvideo/player_state.dart';
 
+import 'gen/pigeon.g.dart';
 import 'kvideo.dart';
 
 final _instanceManager = PlayerInstance();
@@ -96,6 +97,7 @@ class PlayerController {
   );
 
   Future<void> setFit(BoxFit fit) {
+    textureParams.value = textureParams.value.copyWith(fit: fit);
     if (fit == BoxFit.cover) {
       return _api.setFit(BoxFitMode.fill);
     } else {

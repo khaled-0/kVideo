@@ -1,12 +1,14 @@
 package dev.khaled.kvideo
 
 import PlayerEventListener
+import android.util.Log
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.common.Player.STATE_READY
 import androidx.media3.common.VideoSize
+import androidx.media3.common.text.CueGroup
 import androidx.media3.common.util.UnstableApi
 import com.google.ads.interactivemedia.v3.api.AdEvent
 import io.flutter.plugin.common.BinaryMessenger
@@ -96,5 +98,15 @@ class PlayerEventHandler(
     override fun onPlaybackParametersChanged(playbackParameters: PlaybackParameters) {
         super.onPlaybackParametersChanged(playbackParameters)
         listener.onPlaybackSpeedUpdate(playbackParameters.speed.toDouble()) {}
+    }
+
+    override fun onCues(cueGroup: CueGroup) {
+        super.onCues(cueGroup)
+        if (cueGroup.cues.isEmpty()) {
+            return listener.onReceiveSubtitle(null) {}
+        }
+
+        val subs = cueGroup.cues.map { it.text }
+        listener.onReceiveSubtitle(subs.joinToString("\n")) {}
     }
 }

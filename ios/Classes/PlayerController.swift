@@ -26,9 +26,10 @@ public class PlayerController: NSObject, FlutterPlatformView,
     var player = AVPlayer()
     private var eventHandler: PlayerEventHandler!
     var playerItem: AVPlayerItem?
+    private var drmLoaderDelegate: DRMLoaderDelegate?
     var tracks: [TrackData] = []
 
-    var playerView: PlayerView = PlayerView(frame: CGRect.zero)
+    var playerView: PlayerView = PlayerView(frame: .zero)
     public func view() -> UIView { return playerView }
 
     private var pipController: AVPictureInPictureController?
@@ -66,6 +67,7 @@ public class PlayerController: NSObject, FlutterPlatformView,
         // TODO: AVPlayer has different buffering & seek config than ExoPlayer
         // Apply some analogous configuration where applicable
         player.audiovisualBackgroundPlaybackPolicy = .continuesIfPossible
+        player.automaticallyWaitsToMinimizeStalling = true
 
         pipController = AVPictureInPictureController(
             playerLayer: playerView.playerLayer
@@ -75,24 +77,43 @@ public class PlayerController: NSObject, FlutterPlatformView,
 
     func play(media: Media) throws {
         guard let url = URL(string: media.url) else { return }
+        let asset = AVURLAsset(
+            url: url,
+            options: ["AVURLAssetHTTPHeaderFieldsKey": media.headers ?? [:]]
+        )
 
-        let item = AVPlayerItem(url: url)
-        self.playerItem = item
-
-        // TODO: DRM (FairPlay) will go here later if needed
-
-        // Handle start from second
-        if let start = media.startFromSecond, start > 0 {
-            let cm = CMTime(seconds: Double(start), preferredTimescale: 1000)
-            item.seek(to: cm)
+        self.drmLoaderDelegate = nil
+        if let licenseUrl = media.drmLicenseUrl,
+            let certificate = media.drmCertificate,
+            let license = URL(string: licenseUrl)
+        {
+            self.drmLoaderDelegate = DRMLoaderDelegate(
+                certificate: certificate,
+                license: license
+            )
+            asset.resourceLoader.setDelegate(
+                self.drmLoaderDelegate,
+                queue: DispatchQueue(label: "drm", qos: .default)
+            )
         }
 
         // TODO: IMA Ads equivalent (Google IMA for iOS)
 
-        player.replaceCurrentItem(with: item)
-        player.play()
+        self.playerItem = AVPlayerItem(asset: asset)
+        self.tracks = []
 
-        fetchAllTrackData(for: url) { tracks in
+        // Handle start from second
+        if let start = media.startFromSecond, start > 0 {
+            let cm = CMTime(seconds: Double(start), preferredTimescale: 1000)
+            self.playerItem!.seek(to: cm)
+        }
+
+        //self.eventHandler.removeObservers()
+        player.replaceCurrentItem(with: self.playerItem)
+        self.eventHandler.addObservers()
+        self.player.play()
+
+        fetchAllTrackData(for: self.playerItem!) { tracks in
             self.tracks = tracks
         }
     }
@@ -151,18 +172,6 @@ public class PlayerController: NSObject, FlutterPlatformView,
 
     func getTracks() throws -> [TrackData] { return tracks }
 
-    private func mapTrackType(_ track: AVPlayerItemTrack) -> TrackType {
-        guard let mediaType = track.assetTrack?.mediaType else {
-            return .unknown
-        }
-        switch mediaType {
-        case .video: return .video
-        case .audio: return .audio
-        case .subtitle, .text: return .subtitle
-        default: return .unknown
-        }
-    }
-
     func setTrackPreference(track: TrackData?) throws {
         guard let playerItem = player.currentItem else { return }
 
@@ -198,6 +207,22 @@ public class PlayerController: NSObject, FlutterPlatformView,
                     width: Double(width),
                     height: Double(height)
                 )
+            }
+        }
+
+        if trackData.type == .subtitle {
+            if let subtitleGroup = playerItem.asset.mediaSelectionGroup(
+                forMediaCharacteristic: .legible
+            ) {
+                // Find the subtitle option by language or label
+                if let option = subtitleGroup.options.first(where: {
+                    $0.locale?.languageCode == trackData.language
+                        || $0.displayName == trackData.label
+                }) {
+                    playerItem.select(option, in: subtitleGroup)
+                } else {
+                    playerItem.select(nil, in: subtitleGroup)
+                }
             }
         }
     }
@@ -246,6 +271,7 @@ public class PlayerController: NSObject, FlutterPlatformView,
     func dispose() {
         pipController?.stopPictureInPicture()
         pipController = nil
+        drmLoaderDelegate = nil
 
         player.pause()
         player.replaceCurrentItem(with: nil)
@@ -268,11 +294,10 @@ public class PlayerController: NSObject, FlutterPlatformView,
 
 extension PlayerController {
     func fetchAllTrackData(
-        for url: URL,
+        for item: AVPlayerItem,
         completion: @escaping ([TrackData]) -> Void
     ) {
-        let asset = AVURLAsset(url: url)
-
+        let asset = item.asset as! AVURLAsset
         let keys = [
             "availableMediaCharacteristicsWithMediaSelectionOptions",
             "variants",
