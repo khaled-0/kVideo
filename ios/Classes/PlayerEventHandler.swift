@@ -110,6 +110,7 @@ class PlayerEventHandler: NSObject {
     func handleStatusUpdate(item: AVPlayerItem) {
 
         if item.status == .readyToPlay {
+            disableBuiltInSubtitle()
             self.listener.onTracksLoaded(
                 tracks: (try? controller.getTracks()) ?? []
             ) { _ in }
@@ -147,7 +148,6 @@ class PlayerEventHandler: NSObject {
 
         listener.onBufferUpdate(second: Int64(bufferedAhead)) { _ in }
     }
-
 }
 
 // MARK: - Periodic Progress Update
@@ -169,6 +169,16 @@ extension PlayerEventHandler {
                 controller.player.currentItem?.loadedTimeRanges
                 .first?.timeRangeValue.end.seconds ?? 0
             self.listener.onBufferUpdate(second: Int64(buffered)) { _ in }
+        }
+    }
+
+    func disableBuiltInSubtitle() {
+        if let item = controller.player.currentItem,
+            let group = item.asset.mediaSelectionGroup(
+                forMediaCharacteristic: .legible
+            )
+        {
+            item.select(nil, in: group)
         }
     }
 }
@@ -222,7 +232,6 @@ extension PlayerEventHandler {
             }
         }
     }
-
 }
 
 // MARK: - IMA Event (Ads)

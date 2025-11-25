@@ -10,7 +10,6 @@ import TrackType
 import VideoTextureData
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.view.SurfaceView
 import androidx.annotation.OptIn
@@ -103,6 +102,11 @@ class PlayerController(
             }
 
             setTrackSelector(trackSelector)
+            /// Disable Subtitles
+            with(trackSelector.buildUponParameters()) {
+                setIgnoredTextSelectionFlags(C.TRACK_TYPE_TEXT)
+                trackSelector.parameters = build()
+            }
 
             /// Handle Audio Focus
             setHandleAudioBecomingNoisy(true)
@@ -146,14 +150,6 @@ class PlayerController(
                     MediaMetadata.Builder().setExtras(
                         Bundle().apply { putLong("startFromSecond", it) }).build()
                 )
-            }
-
-            media.subtitles?.let {
-                setSubtitleConfigurations(it.map { url ->
-                    MediaItem.SubtitleConfiguration.Builder(Uri.parse(url))
-                        .setMimeType(MimeTypes.APPLICATION_SUBRIP)
-                        .build();
-                })
             }
 
             media.imaTagUrl?.let {
@@ -300,6 +296,8 @@ class PlayerController(
                 trackSelector.parameters = build()
             }
         }
+
+        if (track.type == TrackType.SUBTITLE) return
 
         var override: TrackSelectionOverride? = null
         player.currentTracks.groups.forEach { group ->

@@ -209,22 +209,6 @@ public class PlayerController: NSObject, FlutterPlatformView,
                 )
             }
         }
-
-        if trackData.type == .subtitle {
-            if let subtitleGroup = playerItem.asset.mediaSelectionGroup(
-                forMediaCharacteristic: .legible
-            ) {
-                // Find the subtitle option by language or label
-                if let option = subtitleGroup.options.first(where: {
-                    $0.locale?.languageCode == trackData.language
-                        || $0.displayName == trackData.label
-                }) {
-                    playerItem.select(option, in: subtitleGroup)
-                } else {
-                    playerItem.select(nil, in: subtitleGroup)
-                }
-            }
-        }
     }
 
     // ---------------------------------------------------------------------
@@ -313,19 +297,6 @@ extension PlayerController {
                 for option in audioGroup.options {
                     var data = TrackData()
                     data.type = .audio
-                    data.language = option.locale?.languageCode
-                    data.label = option.displayName
-                    trackDataList.append(data)
-                }
-            }
-
-            // Subtitle tracks
-            if let subtitleGroup = asset.mediaSelectionGroup(
-                forMediaCharacteristic: .legible
-            ) {
-                for option in subtitleGroup.options {
-                    var data = TrackData()
-                    data.type = .subtitle
                     data.language = option.locale?.languageCode
                     data.label = option.displayName
                     trackDataList.append(data)
