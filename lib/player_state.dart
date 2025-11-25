@@ -9,19 +9,26 @@ class PlayerState implements PlayerEventListener {
 
   PlayerState(this._controller);
 
-  final ValueNotifier<Media?> nowPlaying = ValueNotifier(null);
   final ValueNotifier<Duration> progress = ValueNotifier(Duration.zero);
-  final ValueNotifier<String?> textureSubtitles = ValueNotifier(null);
+  final ValueNotifier<Duration> duration = ValueNotifier(Duration.zero);
+  final ValueNotifier<Duration> buffer = ValueNotifier(Duration.zero);
+
   final ValueNotifier<String?> error = ValueNotifier(null);
+  final ValueNotifier<PlaybackStatus> status = ValueNotifier(
+    PlaybackStatus.finished,
+  );
+
+  final ValueNotifier<double> speed = ValueNotifier(1.0);
+  final ValueNotifier<List<TrackData>> tracks = ValueNotifier([]);
 
   @override
   void onBufferUpdate(int second) {
-    // TODO: implement onBufferUpdate
+    buffer.value = Duration(seconds: second);
   }
 
   @override
-  void onDurationUpdate(int durationSecond) {
-    // TODO: implement onDurationUpdate
+  void onDurationUpdate(int second) {
+    duration.value = Duration(seconds: second);
   }
 
   @override
@@ -36,27 +43,27 @@ class PlayerState implements PlayerEventListener {
 
   @override
   void onPlaybackSpeedUpdate(double speed) {
-    // TODO: implement onPlaybackSpeedUpdate
+    this.speed.value = speed;
   }
 
   @override
   void onPlaybackUpdate(PlaybackStatus status) {
-    // TODO: implement onPlaybackUpdate
+    this.status.value = status;
+    // Clear error on successful playback
+    if (error.value != null && status != PlaybackStatus.error) {
+      error.value = null;
+    }
   }
 
   @override
   void onProgressUpdate(int second) {
-    // TODO: implement onProgressUpdate
+    progress.value = Duration(seconds: second);
   }
 
   @override
   void onTracksLoaded(List<TrackData> tracks) {
-    // TODO: implement onTracksLoaded
-  }
-
-  @override
-  void onReceiveSubtitle(String? text) {
-    textureSubtitles.value = text;
+    /// TODO Parsed Subtitles
+    this.tracks.value = [...tracks];
   }
 
   @override

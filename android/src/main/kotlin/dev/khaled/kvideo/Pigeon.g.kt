@@ -889,30 +889,12 @@ class PlayerEventListener(private val binaryMessenger: BinaryMessenger, private 
       } 
     }
   }
-  /** Only used for AndroidViewMode.texture */
-  fun onReceiveSubtitle(textArg: String?, callback: (Result<Unit>) -> Unit)
-{
-    val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
-    val channelName = "dev.flutter.pigeon.kvideo.PlayerEventListener.onReceiveSubtitle$separatedMessageChannelSuffix"
-    val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
-    channel.send(listOf(textArg)) {
-      if (it is List<*>) {
-        if (it.size > 1) {
-          callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))
-        } else {
-          callback(Result.success(Unit))
-        }
-      } else {
-        callback(Result.failure(PigeonPigeonUtils.createConnectionError(channelName)))
-      } 
-    }
-  }
-  fun onDurationUpdate(durationSecondArg: Long, callback: (Result<Unit>) -> Unit)
+  fun onDurationUpdate(secondArg: Long, callback: (Result<Unit>) -> Unit)
 {
     val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
     val channelName = "dev.flutter.pigeon.kvideo.PlayerEventListener.onDurationUpdate$separatedMessageChannelSuffix"
     val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
-    channel.send(listOf(durationSecondArg)) {
+    channel.send(listOf(secondArg)) {
       if (it is List<*>) {
         if (it.size > 1) {
           callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))

@@ -1,14 +1,13 @@
 package dev.khaled.kvideo
 
 import PlayerEventListener
-import android.util.Log
-import androidx.media3.common.MediaItem
+import androidx.media3.common.C
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.common.Player.STATE_READY
+import androidx.media3.common.Timeline
 import androidx.media3.common.VideoSize
-import androidx.media3.common.text.CueGroup
 import androidx.media3.common.util.UnstableApi
 import com.google.ads.interactivemedia.v3.api.AdEvent
 import io.flutter.plugin.common.BinaryMessenger
@@ -36,13 +35,11 @@ class PlayerEventHandler(
         })
     }
 
-    override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-        mediaItem?.let {
-            listener.onDurationUpdate(it.mediaMetadata.durationMs?.div(1000) ?: 0) {}
-            it.mediaMetadata.extras?.getLong("startFromSecond", 0)?.let { startFromSecond ->
-                player.seekTo(startFromSecond * 1000)
-            }
-        }
+    override fun onTimelineChanged(timeline: Timeline, reason: Int) {
+        super.onTimelineChanged(timeline, reason)
+        listener.onDurationUpdate(
+            if (player.duration != C.TIME_UNSET) player.duration.div(1000) else 0
+        ) {}
     }
 
     override fun onIsLoadingChanged(isLoading: Boolean) {
@@ -59,9 +56,11 @@ class PlayerEventHandler(
     override fun onPlaybackStateChanged(state: Int) {
         super.onPlaybackStateChanged(state)
         listener.onPlaybackUpdate(playerController.getPlaybackStatus()) {}
-        if (state == STATE_READY) listener.onTracksLoaded(playerController.getTracks()) {}
+        if (state == STATE_READY) {
+            listener.onTracksLoaded(playerController.getTracks()) {}
+            disableEmbeddedSubtitles()
+        }
     }
-
 
     override fun onPositionDiscontinuity(
         oldPosition: Player.PositionInfo,
@@ -100,13 +99,21 @@ class PlayerEventHandler(
         listener.onPlaybackSpeedUpdate(playbackParameters.speed.toDouble()) {}
     }
 
-    override fun onCues(cueGroup: CueGroup) {
-        super.onCues(cueGroup)
-        if (cueGroup.cues.isEmpty()) {
-            return listener.onReceiveSubtitle(null) {}
+
+    private fun disableEmbeddedSubtitles() {
+        val trackInfo = playerController.trackSelector.currentMappedTrackInfo ?: return
+        val builder = playerController.trackSelector.buildUponParameters()
+
+        for (i in 0 until trackInfo.rendererCount) {
+            if (player.getRendererType(i) == C.TRACK_TYPE_TEXT) {
+                builder.clearOverridesOfType(C.TRACK_TYPE_TEXT)
+                builder.setRendererDisabled(i, true)
+            }
         }
 
-        val subs = cueGroup.cues.map { it.text }
-        listener.onReceiveSubtitle(subs.joinToString("\n")) {}
+        playerController.trackSelector.parameters = builder.build()
     }
 }
+
+
+

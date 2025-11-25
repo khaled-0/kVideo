@@ -9,7 +9,7 @@ import 'package:pigeon/pigeon.dart';
     dartPackageName: "kvideo",
     dartOut: 'lib/gen/pigeon.g.dart',
     dartOptions: DartOptions(),
-    kotlinOut: 'android/src/main/kotlin/Pigeon.g.kt',
+    kotlinOut: 'android/src/main/kotlin/dev/khaled/kvideo/Pigeon.g.kt',
     kotlinOptions: KotlinOptions(),
     swiftOut: 'ios/Classes/Pigeon.g.swift',
     swiftOptions: SwiftOptions(),
@@ -82,10 +82,7 @@ abstract class PlayerEventListener {
   /// Only used for AndroidViewMode.texture
   void onVideoSizeUpdate(int width, int height);
 
-  /// Only used for AndroidViewMode.texture
-  void onReceiveSubtitle(String? text);
-
-  void onDurationUpdate(int durationSecond);
+  void onDurationUpdate(int second);
 
   void onProgressUpdate(int second);
 

@@ -65,7 +65,6 @@ class PlayerController {
   }
 
   Future<void> play(Media? media) {
-    state.nowPlaying.value = media;
     if (media == null) return _api.stop();
     return _api.play(media);
   }

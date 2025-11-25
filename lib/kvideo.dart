@@ -7,4 +7,5 @@ export 'gen/pigeon.g.dart'
         SeekConfig,
         BufferingConfig;
 export 'player_controller.dart';
+export 'player_state.dart';
 export 'player_view.dart';

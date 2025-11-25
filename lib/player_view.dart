@@ -37,22 +37,13 @@ class PlayerView extends StatelessWidget {
         return ValueListenableBuilder(
           valueListenable: controller.textureParams,
           builder: (_, value, _) {
-            if (value.size.isEmpty) return SizedBox();
-            return Stack(
-              fit: StackFit.expand,
-              children: [
-                FittedBox(
-                  fit: value.fit,
-                  child: SizedBox.fromSize(
-                    size: value.size,
-                    child: Texture(textureId: value.textureId ?? -1),
-                  ),
-                ),
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: _SubtitleView(controller.state.textureSubtitles),
-                ),
-              ],
+            if (value.size.isEmpty) return const SizedBox();
+            return FittedBox(
+              fit: value.fit,
+              child: SizedBox.fromSize(
+                size: value.size,
+                child: Texture(textureId: value.textureId ?? -1),
+              ),
             );
           },
         );
@@ -63,7 +54,7 @@ class PlayerView extends StatelessWidget {
         viewType: viewType,
         surfaceFactory: (context, controller) => AndroidViewSurface(
           controller: controller as AndroidViewController,
-          gestureRecognizers: {},
+          gestureRecognizers: const {},
           hitTestBehavior: PlatformViewHitTestBehavior.opaque,
         ),
         onCreatePlatformView: (params) {
@@ -84,32 +75,5 @@ class PlayerView extends StatelessWidget {
     }
 
     throw UnimplementedError("Unsupported platform: $defaultTargetPlatform");
-  }
-}
-
-class _SubtitleView extends StatelessWidget {
-  final ValueNotifier<String?> subtitles;
-
-  const _SubtitleView(this.subtitles);
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      type: MaterialType.transparency,
-      child: ValueListenableBuilder(
-        valueListenable: subtitles,
-        builder: (context, subtitle, child) {
-          if (subtitle == null) return SizedBox.shrink();
-          return Text(
-            subtitle,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Color(0xffffffff),
-              backgroundColor: Color(0xff000000),
-            ),
-          );
-        },
-      ),
-    );
   }
 }

@@ -10,7 +10,6 @@ import TrackType
 import VideoTextureData
 import android.content.Context
 import android.content.Intent
-import android.os.Bundle
 import android.view.SurfaceView
 import androidx.annotation.OptIn
 import androidx.core.net.toUri
@@ -18,7 +17,6 @@ import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.Format
 import androidx.media3.common.MediaItem
-import androidx.media3.common.MediaMetadata
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.Player
 import androidx.media3.common.TrackSelectionOverride
@@ -102,11 +100,6 @@ class PlayerController(
             }
 
             setTrackSelector(trackSelector)
-            /// Disable Subtitles
-            with(trackSelector.buildUponParameters()) {
-                setIgnoredTextSelectionFlags(C.TRACK_TYPE_TEXT)
-                trackSelector.parameters = build()
-            }
 
             /// Handle Audio Focus
             setHandleAudioBecomingNoisy(true)
@@ -142,16 +135,6 @@ class PlayerController(
 
         val headers = media.headers ?: emptyMap()
         val mediaItem = MediaItem.Builder().setUri(media.url).apply {
-
-            media.startFromSecond?.let {
-                if (it <= 0) return@let
-
-                setMediaMetadata(
-                    MediaMetadata.Builder().setExtras(
-                        Bundle().apply { putLong("startFromSecond", it) }).build()
-                )
-            }
-
             media.imaTagUrl?.let {
                 setAdsConfiguration(
                     MediaItem.AdsConfiguration.Builder(it.toUri()).setAdsId(media.url).build()
@@ -195,6 +178,11 @@ class PlayerController(
         }.createMediaSource(mediaItem)
 
         player.setMediaSource(mediaSource)
+        media.startFromSecond?.let {
+            if (it <= 0) return@let
+            player.seekTo(it * 1000)
+        }
+
         player.prepare()
     }
 
@@ -237,12 +225,13 @@ class PlayerController(
                 else -> when {
                     MimeTypes.isVideo(format.sampleMimeType) -> TrackType.VIDEO
                     MimeTypes.isAudio(format.sampleMimeType) -> TrackType.AUDIO
-                    MimeTypes.isText(format.sampleMimeType) -> TrackType.SUBTITLE
-                    else -> TrackType.UNKNOWN
+                    else -> null
                 }
             }
 
-            TrackData(
+            if (type == null) return@mapNotNull null
+
+            return@mapNotNull TrackData(
                 id = format.id,
                 type = type,
                 language = format.language,
@@ -260,7 +249,7 @@ class PlayerController(
             Player.STATE_BUFFERING -> PlaybackStatus.PREPARING
             Player.STATE_READY -> if (player.playWhenReady) PlaybackStatus.PLAYING else PlaybackStatus.PAUSED
             Player.STATE_IDLE -> if (player.playerError != null) PlaybackStatus.ERROR else PlaybackStatus.FINISHED
-            else -> PlaybackStatus.FINISHED
+            else -> PlaybackStatus.FINISHED // Player.STATE_ENDED
         }
     }
 
