@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:kvideo/player_controller.dart';
+import 'package:kvideo/player_view.dart';
 
 import 'gen/pigeon.g.dart';
 
@@ -68,6 +69,7 @@ class PlayerState implements PlayerEventListener {
 
   @override
   void onVideoSizeUpdate(int width, int height) {
+    if (_controller.androidViewMode != AndroidViewMode.texture) return;
     _controller.textureParams.value = _controller.textureParams.value.copyWith(
       size: Size(width.toDouble(), height.toDouble()),
     );

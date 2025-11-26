@@ -94,7 +94,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 children: [
                   FilledButton(
                     onPressed: () {
-                      controller.setFit(BoxFit.cover);
+                      controller.setFit(BoxFitMode.fill);
                     },
                     child: Text("FILL"),
                   ),
@@ -121,7 +121,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
                   FilledButton(
                     onPressed: () {
-                      controller.setFit(BoxFit.contain);
+                      controller.setFit(BoxFitMode.fit);
                     },
                     child: Text("FIT"),
                   ),

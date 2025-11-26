@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/widgets.dart';
-import 'package:kvideo/player_state.dart';
 
 import 'gen/pigeon.g.dart';
 import 'kvideo.dart';
@@ -11,7 +10,7 @@ final _instanceManager = PlayerInstance();
 class VideoTextureParams {
   final int? textureId;
   final Size size;
-  final BoxFit fit;
+  final BoxFitMode fit;
 
   VideoTextureParams({
     required this.textureId,
@@ -20,9 +19,9 @@ class VideoTextureParams {
   });
 
   factory VideoTextureParams.nil() =>
-      VideoTextureParams(textureId: null, size: Size.zero, fit: BoxFit.none);
+      VideoTextureParams(textureId: null, size: Size.zero, fit: BoxFitMode.fit);
 
-  VideoTextureParams copyWith({int? textureId, Size? size, BoxFit? fit}) {
+  VideoTextureParams copyWith({int? textureId, Size? size, BoxFitMode? fit}) {
     return VideoTextureParams(
       textureId: textureId ?? this.textureId,
       size: size ?? this.size,
@@ -55,7 +54,7 @@ class PlayerController {
       final value = await _api.initAndroidTextureView();
       textureParams.value = textureParams.value.copyWith(
         textureId: value.textureId ?? -1,
-        fit: value.fit == BoxFitMode.fill ? BoxFit.cover : BoxFit.contain,
+        fit: value.fit,
         size: Size(
           (value.width ?? 0).toDouble(),
           (value.height ?? 0).toDouble(),
@@ -91,17 +90,14 @@ class PlayerController {
 
   Future<double> getPlaybackSpeed() => _api.getPlaybackSpeed();
 
-  Future<BoxFit> getFit() => _api.getFit().then(
-    (value) => value == BoxFitMode.fill ? BoxFit.cover : BoxFit.contain,
-  );
+  Future<BoxFitMode> getFit() => _api.getFit();
 
-  Future<void> setFit(BoxFit fit) {
-    textureParams.value = textureParams.value.copyWith(fit: fit);
-    if (fit == BoxFit.cover) {
-      return _api.setFit(BoxFitMode.fill);
-    } else {
-      return _api.setFit(BoxFitMode.fit);
+  Future<void> setFit(BoxFitMode fit) {
+    if (androidViewMode == AndroidViewMode.texture) {
+      textureParams.value = textureParams.value.copyWith(fit: fit);
     }
+
+    return _api.setFit(fit);
   }
 
   Future<void> setTrackPreference(TrackData? track) {

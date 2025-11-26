@@ -39,7 +39,7 @@ class PlayerView extends StatelessWidget {
           builder: (_, value, _) {
             if (value.size.isEmpty) return const SizedBox();
             return FittedBox(
-              fit: value.fit,
+              fit: value.fit == BoxFitMode.fill ? BoxFit.cover : BoxFit.contain,
               child: SizedBox.fromSize(
                 size: value.size,
                 child: Texture(textureId: value.textureId ?? -1),

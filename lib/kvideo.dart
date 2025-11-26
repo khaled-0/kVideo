@@ -1,6 +1,7 @@
 export 'gen/pigeon.g.dart'
     show
         Media,
+        BoxFitMode,
         PlayerConfiguration,
         PlaybackStatus,
         TrackData,
