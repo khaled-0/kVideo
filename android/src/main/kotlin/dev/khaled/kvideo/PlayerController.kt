@@ -144,14 +144,16 @@ class PlayerController(
 
 
         val dataSourceFactory = DefaultHttpDataSource.Factory().setDefaultRequestProperties(headers)
-        val drmCallback = HttpMediaDrmCallback(media.drmLicenseUrl, dataSourceFactory).apply {
-            media.headers?.entries?.forEach { setKeyRequestProperty(it.key, it.value) }
-        }
 
         val mediaSourceFactory = DefaultMediaSourceFactory(context).apply {
             setDataSourceFactory(dataSourceFactory)
 
-            if (media.drmLicenseUrl != null) {
+            media.drmLicenseUrl?.let { license ->
+                val drmCallback = HttpMediaDrmCallback(license, dataSourceFactory)
+                media.headers?.entries?.forEach { header ->
+                    drmCallback.setKeyRequestProperty(header.key, header.value)
+                }
+
                 setDrmSessionManagerProvider {
                     DefaultDrmSessionManager.Builder().apply {
                         // Force L3 on TextureView
