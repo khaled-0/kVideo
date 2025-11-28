@@ -2,21 +2,64 @@ import 'package:flutter/material.dart';
 import 'package:kvideo/kvideo.dart';
 
 final controller = PlayerController(androidViewMode: AndroidViewMode.texture);
+final downloader = DownloadManagerApi();
 
-void main() {
-  WidgetsFlutterBinding.ensureInitialized();
-  final urls = [
-    "https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8",
-  ];
-  controller.initialize().then((_) {
+class EventListener implements DownloadEventListener {
+  @override
+  void onCompletion(String id, String location) {
+    print("Completed: $id $location");
     controller.play(
       Media(
-        url: urls[0],
+        url: location,
         subtitles: [
           "https://gist.githubusercontent.com/matibzurovski/d690d5c14acbaa399e7f0829f9d6888e/raw/63578ca30e7430be1fa4942d4d8dd599f78151c7/example.srt",
         ],
       ),
     );
+  }
+
+  @override
+  void onError(String id, String error) {
+    print("Error: $id $error");
+  }
+
+  @override
+  void onProgress(String id, double progress) {
+    print("Progress: $id $progress");
+  }
+
+  @override
+  List<TrackData> requestTrackSelection(List<TrackData> tracks) {
+    // TODO: implement requestTrackSelection
+    throw UnimplementedError();
+  }
+}
+
+final urls = [
+  "https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8",
+  "https://stream.mux.com/3x5wDUHxkd8NkEfspLUK3OpSQEJe3pom.m3u8?redundant_streams=true",
+  "file:///Users/khaled/Library/Developer/CoreSimulator/Devices/6E752C2C-3292-4A6C-BDC7-7A18E9ADF1DE/data/Containers/Data/Application/E30770F1-DB9D-4477-864B-AEEED0941C98/Library/com.apple.UserManagedAssets.TEmS2h/90DBCC88-C397-4337-989F-4EFFF89E01EC_1361158C02C80F53.movpkg",
+];
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  DownloadEventListener.setUp(EventListener());
+
+  final id = await downloader.download(Media(url: urls[1]));
+  print(id);
+
+  // downloader.cancel("C689AC7D-7C26-4BAE-B2D2-420A4E51245F");
+
+  controller.initialize().then((_) {
+    // controller.play(
+    //   Media(
+    //     url: urls[2],
+    //     subtitles: [
+    //       "https://gist.githubusercontent.com/matibzurovski/d690d5c14acbaa399e7f0829f9d6888e/raw/63578ca30e7430be1fa4942d4d8dd599f78151c7/example.srt",
+    //     ],
+    //   ),
+    // );
   });
 
   // runApp(Center(child: PlayerView(controller)));
@@ -134,12 +177,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
               left: 40,
               child: ElevatedButton(
                 onPressed: () {
-                  controller.play(
-                    Media(
-                      url:
-                          "https://stream.mux.com/3x5wDUHxkd8NkEfspLUK3OpSQEJe3pom.m3u8?redundant_streams=true",
-                    ),
-                  );
+                  controller.play(Media(url: urls[1]));
                 },
                 child: Text("MUX"),
               ),

@@ -90,11 +90,12 @@ class PlayerEventHandler: NSObject {
         guard let item = object as? AVPlayerItem else { return }
 
         switch keyPath {
-        // MARK: - Status
         case "status":
             handleStatusUpdate(item: item)
         case "loadedTimeRanges":
             sendBufferUpdate(item: item)
+        case "rate":
+            sendSpeedUpdate()
 
         default:
             break
@@ -108,7 +109,6 @@ class PlayerEventHandler: NSObject {
     }
 
     func handleStatusUpdate(item: AVPlayerItem) {
-
         if item.status == .readyToPlay {
             disableBuiltInSubtitle()
             self.listener.onTracksLoaded(
@@ -117,6 +117,7 @@ class PlayerEventHandler: NSObject {
         }
 
         if item.status == .failed {
+            print("Playback error: \(item.error.debugDescription)")
             self.listener.onPlaybackError(
                 error: item.error.debugDescription
             ) { _ in }
@@ -148,6 +149,12 @@ class PlayerEventHandler: NSObject {
 
         listener.onBufferUpdate(second: Int64(bufferedAhead)) { _ in }
     }
+
+    func sendSpeedUpdate() {
+        let rate = controller.player.rate
+        if rate == 0.0 { return }
+        listener.onPlaybackSpeedUpdate(speed: Double(rate)) { _ in }
+    }
 }
 
 // MARK: - Periodic Progress Update
@@ -173,11 +180,10 @@ extension PlayerEventHandler {
     }
 
     func disableBuiltInSubtitle() {
-        if let item = controller.player.currentItem,
-            let group = item.asset.mediaSelectionGroup(
-                forMediaCharacteristic: .legible
-            )
-        {
+        guard let item = controller.player.currentItem else { return }
+        if let group = item.asset.mediaSelectionGroup(
+            forMediaCharacteristic: .legible
+        ) {
             item.select(nil, in: group)
         }
     }
@@ -187,12 +193,6 @@ extension PlayerEventHandler {
 extension PlayerEventHandler {
     func attachObservers() {
         let player = controller.player
-
-        // Observe timeControlStatus for playback state (Ready, Playing, Buffering)
-        statusObserver = player.observe(\.timeControlStatus, options: [.new]) {
-            [weak self] _, _ in
-            self?.handlePlayerStatusChange(player)
-        }
 
         // Observe playback rate
         rateObserver = player.observe(\.rate, options: [.new]) {
@@ -208,13 +208,6 @@ extension PlayerEventHandler {
             object: controller.player.currentItem
         )
 
-        // Observe playback errors from AVPlayerItem
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(handlePlaybackError(notification:)),
-            name: AVPlayerItem.failedToPlayToEndTimeNotification,
-            object: controller.player.currentItem
-        )
     }
 
     // Handle Playback Speed Changes
@@ -227,7 +220,7 @@ extension PlayerEventHandler {
         guard let item = controller.player.currentItem else { return }
         let duration = item.duration.seconds
         if duration.isFinite {
-            self.listener.onDurationUpdate(durationSecond: Int64(duration)) {
+            self.listener.onDurationUpdate(second: Int64(duration)) {
                 _ in
             }
         }

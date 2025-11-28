@@ -1014,3 +1014,144 @@ class PlayerEventListener: PlayerEventListenerProtocol {
     }
   }
 }
+/// ---------- Downloader ---------- ///
+///
+/// Generated protocol from Pigeon that represents a handler of messages from Flutter.
+protocol DownloadManagerApi {
+  /// Returns a download id if task is created
+  func download(media: Media) throws -> String?
+  func cancel(id: String) throws
+}
+
+/// Generated setup class from Pigeon to handle messages through the `binaryMessenger`.
+class DownloadManagerApiSetup {
+  static var codec: FlutterStandardMessageCodec { PigeonPigeonCodec.shared }
+  /// Sets up an instance of `DownloadManagerApi` to handle messages through the `binaryMessenger`.
+  static func setUp(binaryMessenger: FlutterBinaryMessenger, api: DownloadManagerApi?, messageChannelSuffix: String = "") {
+    let channelSuffix = messageChannelSuffix.count > 0 ? ".\(messageChannelSuffix)" : ""
+    /// Returns a download id if task is created
+    let downloadChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.kvideo.DownloadManagerApi.download\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      downloadChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let mediaArg = args[0] as! Media
+        do {
+          let result = try api.download(media: mediaArg)
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      downloadChannel.setMessageHandler(nil)
+    }
+    let cancelChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.kvideo.DownloadManagerApi.cancel\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      cancelChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let idArg = args[0] as! String
+        do {
+          try api.cancel(id: idArg)
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      cancelChannel.setMessageHandler(nil)
+    }
+  }
+}
+/// Generated protocol from Pigeon that represents Flutter messages that can be called from Swift.
+protocol DownloadEventListenerProtocol {
+  func requestTrackSelection(tracks tracksArg: [TrackData], completion: @escaping (Result<[TrackData], PigeonError>) -> Void)
+  func onProgress(id idArg: String, progress progressArg: Double, completion: @escaping (Result<Void, PigeonError>) -> Void)
+  func onCompletion(id idArg: String, location locationArg: String, completion: @escaping (Result<Void, PigeonError>) -> Void)
+  func onError(id idArg: String, error errorArg: String, completion: @escaping (Result<Void, PigeonError>) -> Void)
+}
+class DownloadEventListener: DownloadEventListenerProtocol {
+  private let binaryMessenger: FlutterBinaryMessenger
+  private let messageChannelSuffix: String
+  init(binaryMessenger: FlutterBinaryMessenger, messageChannelSuffix: String = "") {
+    self.binaryMessenger = binaryMessenger
+    self.messageChannelSuffix = messageChannelSuffix.count > 0 ? ".\(messageChannelSuffix)" : ""
+  }
+  var codec: PigeonPigeonCodec {
+    return PigeonPigeonCodec.shared
+  }
+  func requestTrackSelection(tracks tracksArg: [TrackData], completion: @escaping (Result<[TrackData], PigeonError>) -> Void) {
+    let channelName: String = "dev.flutter.pigeon.kvideo.DownloadEventListener.requestTrackSelection\(messageChannelSuffix)"
+    let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
+    channel.sendMessage([tracksArg] as [Any?]) { response in
+      guard let listResponse = response as? [Any?] else {
+        completion(.failure(createConnectionError(withChannelName: channelName)))
+        return
+      }
+      if listResponse.count > 1 {
+        let code: String = listResponse[0] as! String
+        let message: String? = nilOrValue(listResponse[1])
+        let details: String? = nilOrValue(listResponse[2])
+        completion(.failure(PigeonError(code: code, message: message, details: details)))
+      } else if listResponse[0] == nil {
+        completion(.failure(PigeonError(code: "null-error", message: "Flutter api returned null value for non-null return value.", details: "")))
+      } else {
+        let result = listResponse[0] as! [TrackData]
+        completion(.success(result))
+      }
+    }
+  }
+  func onProgress(id idArg: String, progress progressArg: Double, completion: @escaping (Result<Void, PigeonError>) -> Void) {
+    let channelName: String = "dev.flutter.pigeon.kvideo.DownloadEventListener.onProgress\(messageChannelSuffix)"
+    let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
+    channel.sendMessage([idArg, progressArg] as [Any?]) { response in
+      guard let listResponse = response as? [Any?] else {
+        completion(.failure(createConnectionError(withChannelName: channelName)))
+        return
+      }
+      if listResponse.count > 1 {
+        let code: String = listResponse[0] as! String
+        let message: String? = nilOrValue(listResponse[1])
+        let details: String? = nilOrValue(listResponse[2])
+        completion(.failure(PigeonError(code: code, message: message, details: details)))
+      } else {
+        completion(.success(()))
+      }
+    }
+  }
+  func onCompletion(id idArg: String, location locationArg: String, completion: @escaping (Result<Void, PigeonError>) -> Void) {
+    let channelName: String = "dev.flutter.pigeon.kvideo.DownloadEventListener.onCompletion\(messageChannelSuffix)"
+    let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
+    channel.sendMessage([idArg, locationArg] as [Any?]) { response in
+      guard let listResponse = response as? [Any?] else {
+        completion(.failure(createConnectionError(withChannelName: channelName)))
+        return
+      }
+      if listResponse.count > 1 {
+        let code: String = listResponse[0] as! String
+        let message: String? = nilOrValue(listResponse[1])
+        let details: String? = nilOrValue(listResponse[2])
+        completion(.failure(PigeonError(code: code, message: message, details: details)))
+      } else {
+        completion(.success(()))
+      }
+    }
+  }
+  func onError(id idArg: String, error errorArg: String, completion: @escaping (Result<Void, PigeonError>) -> Void) {
+    let channelName: String = "dev.flutter.pigeon.kvideo.DownloadEventListener.onError\(messageChannelSuffix)"
+    let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
+    channel.sendMessage([idArg, errorArg] as [Any?]) { response in
+      guard let listResponse = response as? [Any?] else {
+        completion(.failure(createConnectionError(withChannelName: channelName)))
+        return
+      }
+      if listResponse.count > 1 {
+        let code: String = listResponse[0] as! String
+        let message: String? = nilOrValue(listResponse[1])
+        let details: String? = nilOrValue(listResponse[2])
+        completion(.failure(PigeonError(code: code, message: message, details: details)))
+      } else {
+        completion(.success(()))
+      }
+    }
+  }
+}

@@ -1304,3 +1304,190 @@ abstract class PlayerEventListener {
     }
   }
 }
+
+/// ---------- Downloader ---------- ///
+class DownloadManagerApi {
+  /// Constructor for [DownloadManagerApi].  The [binaryMessenger] named argument is
+  /// available for dependency injection.  If it is left null, the default
+  /// BinaryMessenger will be used which routes to the host platform.
+  DownloadManagerApi({BinaryMessenger? binaryMessenger, String messageChannelSuffix = ''})
+      : pigeonVar_binaryMessenger = binaryMessenger,
+        pigeonVar_messageChannelSuffix = messageChannelSuffix.isNotEmpty ? '.$messageChannelSuffix' : '';
+  final BinaryMessenger? pigeonVar_binaryMessenger;
+
+  static const MessageCodec<Object?> pigeonChannelCodec = _PigeonCodec();
+
+  final String pigeonVar_messageChannelSuffix;
+
+  /// Returns a download id if task is created
+  Future<String?> download(Media media) async {
+    final String pigeonVar_channelName = 'dev.flutter.pigeon.kvideo.DownloadManagerApi.download$pigeonVar_messageChannelSuffix';
+    final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[media]);
+    final List<Object?>? pigeonVar_replyList =
+        await pigeonVar_sendFuture as List<Object?>?;
+    if (pigeonVar_replyList == null) {
+      throw _createConnectionError(pigeonVar_channelName);
+    } else if (pigeonVar_replyList.length > 1) {
+      throw PlatformException(
+        code: pigeonVar_replyList[0]! as String,
+        message: pigeonVar_replyList[1] as String?,
+        details: pigeonVar_replyList[2],
+      );
+    } else {
+      return (pigeonVar_replyList[0] as String?);
+    }
+  }
+
+  Future<void> cancel(String id) async {
+    final String pigeonVar_channelName = 'dev.flutter.pigeon.kvideo.DownloadManagerApi.cancel$pigeonVar_messageChannelSuffix';
+    final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[id]);
+    final List<Object?>? pigeonVar_replyList =
+        await pigeonVar_sendFuture as List<Object?>?;
+    if (pigeonVar_replyList == null) {
+      throw _createConnectionError(pigeonVar_channelName);
+    } else if (pigeonVar_replyList.length > 1) {
+      throw PlatformException(
+        code: pigeonVar_replyList[0]! as String,
+        message: pigeonVar_replyList[1] as String?,
+        details: pigeonVar_replyList[2],
+      );
+    } else {
+      return;
+    }
+  }
+}
+
+abstract class DownloadEventListener {
+  static const MessageCodec<Object?> pigeonChannelCodec = _PigeonCodec();
+
+  List<TrackData> requestTrackSelection(List<TrackData> tracks);
+
+  void onProgress(String id, double progress);
+
+  void onCompletion(String id, String location);
+
+  void onError(String id, String error);
+
+  static void setUp(DownloadEventListener? api, {BinaryMessenger? binaryMessenger, String messageChannelSuffix = '',}) {
+    messageChannelSuffix = messageChannelSuffix.isNotEmpty ? '.$messageChannelSuffix' : '';
+    {
+      final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
+          'dev.flutter.pigeon.kvideo.DownloadEventListener.requestTrackSelection$messageChannelSuffix', pigeonChannelCodec,
+          binaryMessenger: binaryMessenger);
+      if (api == null) {
+        pigeonVar_channel.setMessageHandler(null);
+      } else {
+        pigeonVar_channel.setMessageHandler((Object? message) async {
+          assert(message != null,
+          'Argument for dev.flutter.pigeon.kvideo.DownloadEventListener.requestTrackSelection was null.');
+          final List<Object?> args = (message as List<Object?>?)!;
+          final List<TrackData>? arg_tracks = (args[0] as List<Object?>?)?.cast<TrackData>();
+          assert(arg_tracks != null,
+              'Argument for dev.flutter.pigeon.kvideo.DownloadEventListener.requestTrackSelection was null, expected non-null List<TrackData>.');
+          try {
+            final List<TrackData> output = api.requestTrackSelection(arg_tracks!);
+            return wrapResponse(result: output);
+          } on PlatformException catch (e) {
+            return wrapResponse(error: e);
+          }          catch (e) {
+            return wrapResponse(error: PlatformException(code: 'error', message: e.toString()));
+          }
+        });
+      }
+    }
+    {
+      final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
+          'dev.flutter.pigeon.kvideo.DownloadEventListener.onProgress$messageChannelSuffix', pigeonChannelCodec,
+          binaryMessenger: binaryMessenger);
+      if (api == null) {
+        pigeonVar_channel.setMessageHandler(null);
+      } else {
+        pigeonVar_channel.setMessageHandler((Object? message) async {
+          assert(message != null,
+          'Argument for dev.flutter.pigeon.kvideo.DownloadEventListener.onProgress was null.');
+          final List<Object?> args = (message as List<Object?>?)!;
+          final String? arg_id = (args[0] as String?);
+          assert(arg_id != null,
+              'Argument for dev.flutter.pigeon.kvideo.DownloadEventListener.onProgress was null, expected non-null String.');
+          final double? arg_progress = (args[1] as double?);
+          assert(arg_progress != null,
+              'Argument for dev.flutter.pigeon.kvideo.DownloadEventListener.onProgress was null, expected non-null double.');
+          try {
+            api.onProgress(arg_id!, arg_progress!);
+            return wrapResponse(empty: true);
+          } on PlatformException catch (e) {
+            return wrapResponse(error: e);
+          }          catch (e) {
+            return wrapResponse(error: PlatformException(code: 'error', message: e.toString()));
+          }
+        });
+      }
+    }
+    {
+      final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
+          'dev.flutter.pigeon.kvideo.DownloadEventListener.onCompletion$messageChannelSuffix', pigeonChannelCodec,
+          binaryMessenger: binaryMessenger);
+      if (api == null) {
+        pigeonVar_channel.setMessageHandler(null);
+      } else {
+        pigeonVar_channel.setMessageHandler((Object? message) async {
+          assert(message != null,
+          'Argument for dev.flutter.pigeon.kvideo.DownloadEventListener.onCompletion was null.');
+          final List<Object?> args = (message as List<Object?>?)!;
+          final String? arg_id = (args[0] as String?);
+          assert(arg_id != null,
+              'Argument for dev.flutter.pigeon.kvideo.DownloadEventListener.onCompletion was null, expected non-null String.');
+          final String? arg_location = (args[1] as String?);
+          assert(arg_location != null,
+              'Argument for dev.flutter.pigeon.kvideo.DownloadEventListener.onCompletion was null, expected non-null String.');
+          try {
+            api.onCompletion(arg_id!, arg_location!);
+            return wrapResponse(empty: true);
+          } on PlatformException catch (e) {
+            return wrapResponse(error: e);
+          }          catch (e) {
+            return wrapResponse(error: PlatformException(code: 'error', message: e.toString()));
+          }
+        });
+      }
+    }
+    {
+      final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
+          'dev.flutter.pigeon.kvideo.DownloadEventListener.onError$messageChannelSuffix', pigeonChannelCodec,
+          binaryMessenger: binaryMessenger);
+      if (api == null) {
+        pigeonVar_channel.setMessageHandler(null);
+      } else {
+        pigeonVar_channel.setMessageHandler((Object? message) async {
+          assert(message != null,
+          'Argument for dev.flutter.pigeon.kvideo.DownloadEventListener.onError was null.');
+          final List<Object?> args = (message as List<Object?>?)!;
+          final String? arg_id = (args[0] as String?);
+          assert(arg_id != null,
+              'Argument for dev.flutter.pigeon.kvideo.DownloadEventListener.onError was null, expected non-null String.');
+          final String? arg_error = (args[1] as String?);
+          assert(arg_error != null,
+              'Argument for dev.flutter.pigeon.kvideo.DownloadEventListener.onError was null, expected non-null String.');
+          try {
+            api.onError(arg_id!, arg_error!);
+            return wrapResponse(empty: true);
+          } on PlatformException catch (e) {
+            return wrapResponse(error: e);
+          }          catch (e) {
+            return wrapResponse(error: PlatformException(code: 'error', message: e.toString()));
+          }
+        });
+      }
+    }
+  }
+}

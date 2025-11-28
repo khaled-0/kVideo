@@ -10,7 +10,7 @@ import 'package:pigeon/pigeon.dart';
     dartOut: 'lib/gen/pigeon.g.dart',
     dartOptions: DartOptions(),
     kotlinOut: 'android/src/main/kotlin/dev/khaled/kvideo/Pigeon.g.kt',
-    kotlinOptions: KotlinOptions(),
+    kotlinOptions: KotlinOptions(package: "dev.khaled.kvideo"),
     swiftOut: 'ios/Classes/Pigeon.g.swift',
     swiftOptions: SwiftOptions(),
   ),
@@ -168,4 +168,24 @@ class TrackData {
   int? bitrate; // Audio/video bitrate
   int? width; // Video width
   int? height; // Video height
+}
+
+/// ---------- Downloader ---------- ///
+
+@HostApi()
+abstract class DownloadManagerApi {
+  /// Returns a download id if task is created
+  String? download(Media media);
+
+  void cancel(String id);
+}
+
+@FlutterApi()
+abstract class DownloadEventListener {
+  // TODO: Return list of Video & Audio to download from available tracks
+  List<TrackData> requestTrackSelection(List<TrackData> tracks);
+
+  void onProgress(String id, double progress);
+  void onCompletion(String id, String location);
+  void onError(String id, String error);
 }

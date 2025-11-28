@@ -6,7 +6,9 @@ export 'gen/pigeon.g.dart'
         PlaybackStatus,
         TrackData,
         SeekConfig,
-        BufferingConfig;
+        BufferingConfig,
+        DownloadEventListener,
+        DownloadManagerApi;
 export 'player_controller.dart';
 export 'player_state.dart';
 export 'player_view.dart';

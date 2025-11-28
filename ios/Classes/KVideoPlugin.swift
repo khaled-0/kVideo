@@ -15,6 +15,7 @@ public class KVideoPlugin: NSObject, FlutterPlugin, PlayerInstance {
         instance.binaryMessenger = registrar.messenger()
         instance.registrar = registrar
 
+        // Player Controller
         PlayerInstanceSetup.setUp(
             binaryMessenger: registrar.messenger(),
             api: instance
@@ -28,6 +29,12 @@ public class KVideoPlugin: NSObject, FlutterPlugin, PlayerInstance {
         registrar.register(
             PlayerFactory { id in return controllers[id]! },
             withId: "dev.khaled.kvideo"
+        )
+        
+        // Download Manager
+        DownloadManagerApiSetup.setUp(
+            binaryMessenger: registrar.messenger(),
+            api: DownloadManager(messenger: registrar.messenger())
         )
     }
 
@@ -62,7 +69,7 @@ class PlayerFactory: NSObject, FlutterPlatformViewFactory {
         arguments args: Any?
     ) -> FlutterPlatformView {
         let id = args as! String
-        return getController(id) as! FlutterPlatformView
+        return getController(id) as FlutterPlatformView
     }
 
     public func createArgsCodec() -> FlutterMessageCodec & NSObjectProtocol {

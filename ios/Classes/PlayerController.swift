@@ -76,7 +76,11 @@ public class PlayerController: NSObject, FlutterPlatformView,
     }
 
     func play(media: Media) throws {
-        guard let url = URL(string: media.url) else { return }
+        guard let url = URL(string: media.url) else {
+            print("Unsupported url: \(media.url)")
+            return
+        }
+
         let asset = AVURLAsset(
             url: url,
             options: ["AVURLAssetHTTPHeaderFieldsKey": media.headers ?? [:]]
@@ -98,14 +102,14 @@ public class PlayerController: NSObject, FlutterPlatformView,
         }
 
         // TODO: IMA Ads equivalent (Google IMA for iOS)
-
+        asset.resourceLoader.preloadsEligibleContentKeys = true
         self.playerItem = AVPlayerItem(asset: asset)
         self.tracks = []
 
         // Handle start from second
         if let start = media.startFromSecond, start > 0 {
             let cm = CMTime(seconds: Double(start), preferredTimescale: 1000)
-            self.playerItem!.seek(to: cm)
+            self.playerItem!.seek(to: cm, completionHandler: nil)
         }
 
         //self.eventHandler.removeObservers()
@@ -113,7 +117,7 @@ public class PlayerController: NSObject, FlutterPlatformView,
         self.eventHandler.addObservers()
         self.player.play()
 
-        fetchAllTrackData(for: self.playerItem!) { tracks in
+        asset.fetchAllTrackData { tracks in
             self.tracks = tracks
         }
     }
@@ -276,12 +280,11 @@ public class PlayerController: NSObject, FlutterPlatformView,
 
 }
 
-extension PlayerController {
+extension AVURLAsset {
     func fetchAllTrackData(
-        for item: AVPlayerItem,
         completion: @escaping ([TrackData]) -> Void
     ) {
-        let asset = item.asset as! AVURLAsset
+        let asset = self
         let keys = [
             "availableMediaCharacteristicsWithMediaSelectionOptions",
             "variants",
@@ -304,19 +307,18 @@ extension PlayerController {
             }
 
             // Video tracks (variants)
-            if let variants = asset.variants as? [AVAssetVariant] {
-                for variant in variants {
-                    guard let videoAttributes = variant.videoAttributes else {
-                        continue
-                    }
 
-                    var data = TrackData()
-                    data.type = .video
-                    data.bitrate = Int64(variant.peakBitRate ?? 0)
-                    data.width = Int64(videoAttributes.presentationSize.width)
-                    data.height = Int64(videoAttributes.presentationSize.height)
-                    trackDataList.append(data)
+            for variant in asset.variants {
+                guard let videoAttributes = variant.videoAttributes else {
+                    continue
                 }
+
+                var data = TrackData()
+                data.type = .video
+                data.bitrate = Int64(variant.peakBitRate ?? 0)
+                data.width = Int64(videoAttributes.presentationSize.width)
+                data.height = Int64(videoAttributes.presentationSize.height)
+                trackDataList.append(data)
             }
 
             completion(trackDataList)

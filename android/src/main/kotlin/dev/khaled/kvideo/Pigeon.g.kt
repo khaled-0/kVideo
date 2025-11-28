@@ -2,6 +2,7 @@
 // See also: https://pub.dev/packages/pigeon
 @file:Suppress("UNCHECKED_CAST", "ArrayInDataClass")
 
+package dev.khaled.kvideo
 
 import android.util.Log
 import io.flutter.plugin.common.BasicMessageChannel
@@ -1014,6 +1015,143 @@ class PlayerEventListener(private val binaryMessenger: BinaryMessenger, private 
     val channelName = "dev.flutter.pigeon.kvideo.PlayerEventListener.onPlaybackSpeedUpdate$separatedMessageChannelSuffix"
     val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
     channel.send(listOf(speedArg)) {
+      if (it is List<*>) {
+        if (it.size > 1) {
+          callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))
+        } else {
+          callback(Result.success(Unit))
+        }
+      } else {
+        callback(Result.failure(PigeonPigeonUtils.createConnectionError(channelName)))
+      } 
+    }
+  }
+}
+/**
+ * ---------- Downloader ---------- ///
+ *
+ * Generated interface from Pigeon that represents a handler of messages from Flutter.
+ */
+interface DownloadManagerApi {
+  /** Returns a download id if task is created */
+  fun download(media: Media): String?
+  fun cancel(id: String)
+
+  companion object {
+    /** The codec used by DownloadManagerApi. */
+    val codec: MessageCodec<Any?> by lazy {
+      PigeonPigeonCodec()
+    }
+    /** Sets up an instance of `DownloadManagerApi` to handle messages through the `binaryMessenger`. */
+    @JvmOverloads
+    fun setUp(binaryMessenger: BinaryMessenger, api: DownloadManagerApi?, messageChannelSuffix: String = "") {
+      val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.kvideo.DownloadManagerApi.download$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val mediaArg = args[0] as Media
+            val wrapped: List<Any?> = try {
+              listOf(api.download(mediaArg))
+            } catch (exception: Throwable) {
+              PigeonPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.kvideo.DownloadManagerApi.cancel$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val idArg = args[0] as String
+            val wrapped: List<Any?> = try {
+              api.cancel(idArg)
+              listOf(null)
+            } catch (exception: Throwable) {
+              PigeonPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+    }
+  }
+}
+/** Generated class from Pigeon that represents Flutter messages that can be called from Kotlin. */
+class DownloadEventListener(private val binaryMessenger: BinaryMessenger, private val messageChannelSuffix: String = "") {
+  companion object {
+    /** The codec used by DownloadEventListener. */
+    val codec: MessageCodec<Any?> by lazy {
+      PigeonPigeonCodec()
+    }
+  }
+  fun requestTrackSelection(tracksArg: List<TrackData>, callback: (Result<List<TrackData>>) -> Unit)
+{
+    val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
+    val channelName = "dev.flutter.pigeon.kvideo.DownloadEventListener.requestTrackSelection$separatedMessageChannelSuffix"
+    val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
+    channel.send(listOf(tracksArg)) {
+      if (it is List<*>) {
+        if (it.size > 1) {
+          callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))
+        } else if (it[0] == null) {
+          callback(Result.failure(FlutterError("null-error", "Flutter api returned null value for non-null return value.", "")))
+        } else {
+          val output = it[0] as List<TrackData>
+          callback(Result.success(output))
+        }
+      } else {
+        callback(Result.failure(PigeonPigeonUtils.createConnectionError(channelName)))
+      } 
+    }
+  }
+  fun onProgress(idArg: String, progressArg: Double, callback: (Result<Unit>) -> Unit)
+{
+    val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
+    val channelName = "dev.flutter.pigeon.kvideo.DownloadEventListener.onProgress$separatedMessageChannelSuffix"
+    val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
+    channel.send(listOf(idArg, progressArg)) {
+      if (it is List<*>) {
+        if (it.size > 1) {
+          callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))
+        } else {
+          callback(Result.success(Unit))
+        }
+      } else {
+        callback(Result.failure(PigeonPigeonUtils.createConnectionError(channelName)))
+      } 
+    }
+  }
+  fun onCompletion(idArg: String, locationArg: String, callback: (Result<Unit>) -> Unit)
+{
+    val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
+    val channelName = "dev.flutter.pigeon.kvideo.DownloadEventListener.onCompletion$separatedMessageChannelSuffix"
+    val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
+    channel.send(listOf(idArg, locationArg)) {
+      if (it is List<*>) {
+        if (it.size > 1) {
+          callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))
+        } else {
+          callback(Result.success(Unit))
+        }
+      } else {
+        callback(Result.failure(PigeonPigeonUtils.createConnectionError(channelName)))
+      } 
+    }
+  }
+  fun onError(idArg: String, errorArg: String, callback: (Result<Unit>) -> Unit)
+{
+    val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
+    val channelName = "dev.flutter.pigeon.kvideo.DownloadEventListener.onError$separatedMessageChannelSuffix"
+    val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
+    channel.send(listOf(idArg, errorArg)) {
       if (it is List<*>) {
         if (it.size > 1) {
           callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))
