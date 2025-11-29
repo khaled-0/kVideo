@@ -1560,6 +1560,8 @@ abstract class DownloadEventListener {
 
   void onError(String id, String error);
 
+  void onRemoved(String id);
+
   static void setUp(DownloadEventListener? api, {BinaryMessenger? binaryMessenger, String messageChannelSuffix = '',}) {
     messageChannelSuffix = messageChannelSuffix.isNotEmpty ? '.$messageChannelSuffix' : '';
     {
@@ -1637,6 +1639,31 @@ abstract class DownloadEventListener {
               'Argument for dev.flutter.pigeon.kvideo.DownloadEventListener.onError was null, expected non-null String.');
           try {
             api.onError(arg_id!, arg_error!);
+            return wrapResponse(empty: true);
+          } on PlatformException catch (e) {
+            return wrapResponse(error: e);
+          }          catch (e) {
+            return wrapResponse(error: PlatformException(code: 'error', message: e.toString()));
+          }
+        });
+      }
+    }
+    {
+      final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
+          'dev.flutter.pigeon.kvideo.DownloadEventListener.onRemoved$messageChannelSuffix', pigeonChannelCodec,
+          binaryMessenger: binaryMessenger);
+      if (api == null) {
+        pigeonVar_channel.setMessageHandler(null);
+      } else {
+        pigeonVar_channel.setMessageHandler((Object? message) async {
+          assert(message != null,
+          'Argument for dev.flutter.pigeon.kvideo.DownloadEventListener.onRemoved was null.');
+          final List<Object?> args = (message as List<Object?>?)!;
+          final String? arg_id = (args[0] as String?);
+          assert(arg_id != null,
+              'Argument for dev.flutter.pigeon.kvideo.DownloadEventListener.onRemoved was null, expected non-null String.');
+          try {
+            api.onRemoved(arg_id!);
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);

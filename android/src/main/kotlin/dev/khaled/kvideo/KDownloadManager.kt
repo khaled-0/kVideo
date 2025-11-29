@@ -5,6 +5,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
+import android.util.Log
 import androidx.annotation.OptIn
 import androidx.core.net.toUri
 import androidx.media3.common.util.UnstableApi
@@ -43,6 +44,7 @@ class KDownloadManager(
         DownloadManagerUtil.getDownloadManager(context).addListener(this)
     }
 
+    /// Event Listener
     override fun onDownloadChanged(
         downloadManager: DownloadManager, download: Download, finalException: Exception?
     ) {
@@ -69,6 +71,10 @@ class KDownloadManager(
                 listener.onError(
                     download.request.id, finalException?.localizedMessage ?: "Unknown error"
                 ) {}
+            }
+
+            Download.STATE_REMOVING -> {
+                listener.onRemoved(download.request.id) {}
             }
         }
     }
@@ -116,6 +122,8 @@ class KDownloadManager(
         val download = DownloadManagerUtil.getDownloadManager(context).downloadIndex.getDownload(id)
             ?: return null
 
+        if (download.state == Download.STATE_REMOVING) return null
+
         val status: DownloadStatus = when (download.state) {
             Download.STATE_DOWNLOADING -> DownloadStatus.DOWNLOADING
             Download.STATE_COMPLETED -> DownloadStatus.FINISHED
@@ -123,6 +131,7 @@ class KDownloadManager(
             Download.STATE_STOPPED -> DownloadStatus.ERROR
             else -> DownloadStatus.WAITING
         }
+
 
         return DownloadData(
             id = download.request.id,
@@ -139,6 +148,7 @@ class KDownloadManager(
         val downloadIds = mutableListOf<String>()
 
         while (cursor.moveToNext()) {
+            if (cursor.download.state == Download.STATE_REMOVING) continue
             downloadIds.add(cursor.download.request.id)
         }
 

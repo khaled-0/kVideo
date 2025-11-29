@@ -19,6 +19,11 @@ class EventListener implements DownloadEventListener {
   void onProgress(String id, int progress) {
     print("Progress: $id $progress");
   }
+
+  @override
+  void onRemoved(String id) {
+    print("Removed: $id");
+  }
 }
 
 final urls = [

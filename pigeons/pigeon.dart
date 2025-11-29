@@ -218,4 +218,6 @@ abstract class DownloadEventListener {
   void onCompletion(String id, String location);
 
   void onError(String id, String error);
+
+  void onRemoved(String id);
 }

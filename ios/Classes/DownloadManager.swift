@@ -201,6 +201,12 @@ extension DownloadManager: AVAssetDownloadDelegate {
     ) {
 
         guard let error, let id = task.taskDescription else { return }
+        
+        if (error as NSError).code == NSURLErrorCancelled {
+            self.listener.onRemoved(id: id) { _ in }
+            return
+        }
+
         self.listener.onError(id: id, error: error.localizedDescription) {
             _ in
         }
