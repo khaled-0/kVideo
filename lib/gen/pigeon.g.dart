@@ -59,6 +59,14 @@ enum TrackType {
   unknown,
 }
 
+/// ---------- Downloader ---------- ///
+enum DownloadStatus {
+  downloading,
+  waiting,
+  error,
+  finished,
+}
+
 class VideoTextureData {
   VideoTextureData({
     this.textureId,
@@ -407,6 +415,72 @@ class TrackData {
 ;
 }
 
+class DownloadData {
+  DownloadData({
+    this.id,
+    this.progress,
+    this.status,
+    this.originUri,
+    this.localUri,
+    this.error,
+  });
+
+  String? id;
+
+  int? progress;
+
+  DownloadStatus? status;
+
+  String? originUri;
+
+  String? localUri;
+
+  String? error;
+
+  List<Object?> _toList() {
+    return <Object?>[
+      id,
+      progress,
+      status,
+      originUri,
+      localUri,
+      error,
+    ];
+  }
+
+  Object encode() {
+    return _toList();  }
+
+  static DownloadData decode(Object result) {
+    result as List<Object?>;
+    return DownloadData(
+      id: result[0] as String?,
+      progress: result[1] as int?,
+      status: result[2] as DownloadStatus?,
+      originUri: result[3] as String?,
+      localUri: result[4] as String?,
+      error: result[5] as String?,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! DownloadData || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(encode(), other.encode());
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => Object.hashAll(_toList())
+;
+}
+
 
 class _PigeonCodec extends StandardMessageCodec {
   const _PigeonCodec();
@@ -424,23 +498,29 @@ class _PigeonCodec extends StandardMessageCodec {
     }    else if (value is TrackType) {
       buffer.putUint8(131);
       writeValue(buffer, value.index);
-    }    else if (value is VideoTextureData) {
+    }    else if (value is DownloadStatus) {
       buffer.putUint8(132);
-      writeValue(buffer, value.encode());
-    }    else if (value is Media) {
+      writeValue(buffer, value.index);
+    }    else if (value is VideoTextureData) {
       buffer.putUint8(133);
       writeValue(buffer, value.encode());
-    }    else if (value is PlayerConfiguration) {
+    }    else if (value is Media) {
       buffer.putUint8(134);
       writeValue(buffer, value.encode());
-    }    else if (value is BufferingConfig) {
+    }    else if (value is PlayerConfiguration) {
       buffer.putUint8(135);
       writeValue(buffer, value.encode());
-    }    else if (value is SeekConfig) {
+    }    else if (value is BufferingConfig) {
       buffer.putUint8(136);
       writeValue(buffer, value.encode());
-    }    else if (value is TrackData) {
+    }    else if (value is SeekConfig) {
       buffer.putUint8(137);
+      writeValue(buffer, value.encode());
+    }    else if (value is TrackData) {
+      buffer.putUint8(138);
+      writeValue(buffer, value.encode());
+    }    else if (value is DownloadData) {
+      buffer.putUint8(139);
       writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
@@ -460,17 +540,22 @@ class _PigeonCodec extends StandardMessageCodec {
         final int? value = readValue(buffer) as int?;
         return value == null ? null : TrackType.values[value];
       case 132: 
-        return VideoTextureData.decode(readValue(buffer)!);
+        final int? value = readValue(buffer) as int?;
+        return value == null ? null : DownloadStatus.values[value];
       case 133: 
-        return Media.decode(readValue(buffer)!);
+        return VideoTextureData.decode(readValue(buffer)!);
       case 134: 
-        return PlayerConfiguration.decode(readValue(buffer)!);
+        return Media.decode(readValue(buffer)!);
       case 135: 
-        return BufferingConfig.decode(readValue(buffer)!);
+        return PlayerConfiguration.decode(readValue(buffer)!);
       case 136: 
-        return SeekConfig.decode(readValue(buffer)!);
+        return BufferingConfig.decode(readValue(buffer)!);
       case 137: 
+        return SeekConfig.decode(readValue(buffer)!);
+      case 138: 
         return TrackData.decode(readValue(buffer)!);
+      case 139: 
+        return DownloadData.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
     }
@@ -1305,7 +1390,6 @@ abstract class PlayerEventListener {
   }
 }
 
-/// ---------- Downloader ---------- ///
 class DownloadManagerApi {
   /// Constructor for [DownloadManagerApi].  The [binaryMessenger] named argument is
   /// available for dependency injection.  If it is left null, the default
@@ -1412,14 +1496,65 @@ class DownloadManagerApi {
       return;
     }
   }
+
+  /// Returns null if download not found
+  Future<DownloadData?> getStatusFor(String id) async {
+    final String pigeonVar_channelName = 'dev.flutter.pigeon.kvideo.DownloadManagerApi.getStatusFor$pigeonVar_messageChannelSuffix';
+    final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[id]);
+    final List<Object?>? pigeonVar_replyList =
+        await pigeonVar_sendFuture as List<Object?>?;
+    if (pigeonVar_replyList == null) {
+      throw _createConnectionError(pigeonVar_channelName);
+    } else if (pigeonVar_replyList.length > 1) {
+      throw PlatformException(
+        code: pigeonVar_replyList[0]! as String,
+        message: pigeonVar_replyList[1] as String?,
+        details: pigeonVar_replyList[2],
+      );
+    } else {
+      return (pigeonVar_replyList[0] as DownloadData?);
+    }
+  }
+
+  /// Returns id's for all downloads
+  Future<List<String>> getAllDownloads() async {
+    final String pigeonVar_channelName = 'dev.flutter.pigeon.kvideo.DownloadManagerApi.getAllDownloads$pigeonVar_messageChannelSuffix';
+    final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final List<Object?>? pigeonVar_replyList =
+        await pigeonVar_sendFuture as List<Object?>?;
+    if (pigeonVar_replyList == null) {
+      throw _createConnectionError(pigeonVar_channelName);
+    } else if (pigeonVar_replyList.length > 1) {
+      throw PlatformException(
+        code: pigeonVar_replyList[0]! as String,
+        message: pigeonVar_replyList[1] as String?,
+        details: pigeonVar_replyList[2],
+      );
+    } else if (pigeonVar_replyList[0] == null) {
+      throw PlatformException(
+        code: 'null-error',
+        message: 'Host platform returned null value for non-null return value.',
+      );
+    } else {
+      return (pigeonVar_replyList[0] as List<Object?>?)!.cast<String>();
+    }
+  }
 }
 
 abstract class DownloadEventListener {
   static const MessageCodec<Object?> pigeonChannelCodec = _PigeonCodec();
 
-  List<TrackData> requestTrackSelection(List<TrackData> tracks);
-
-  void onProgress(String id, double progress);
+  void onProgress(String id, int progress);
 
   void onCompletion(String id, String location);
 
@@ -1427,31 +1562,6 @@ abstract class DownloadEventListener {
 
   static void setUp(DownloadEventListener? api, {BinaryMessenger? binaryMessenger, String messageChannelSuffix = '',}) {
     messageChannelSuffix = messageChannelSuffix.isNotEmpty ? '.$messageChannelSuffix' : '';
-    {
-      final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
-          'dev.flutter.pigeon.kvideo.DownloadEventListener.requestTrackSelection$messageChannelSuffix', pigeonChannelCodec,
-          binaryMessenger: binaryMessenger);
-      if (api == null) {
-        pigeonVar_channel.setMessageHandler(null);
-      } else {
-        pigeonVar_channel.setMessageHandler((Object? message) async {
-          assert(message != null,
-          'Argument for dev.flutter.pigeon.kvideo.DownloadEventListener.requestTrackSelection was null.');
-          final List<Object?> args = (message as List<Object?>?)!;
-          final List<TrackData>? arg_tracks = (args[0] as List<Object?>?)?.cast<TrackData>();
-          assert(arg_tracks != null,
-              'Argument for dev.flutter.pigeon.kvideo.DownloadEventListener.requestTrackSelection was null, expected non-null List<TrackData>.');
-          try {
-            final List<TrackData> output = api.requestTrackSelection(arg_tracks!);
-            return wrapResponse(result: output);
-          } on PlatformException catch (e) {
-            return wrapResponse(error: e);
-          }          catch (e) {
-            return wrapResponse(error: PlatformException(code: 'error', message: e.toString()));
-          }
-        });
-      }
-    }
     {
       final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
           'dev.flutter.pigeon.kvideo.DownloadEventListener.onProgress$messageChannelSuffix', pigeonChannelCodec,
@@ -1466,9 +1576,9 @@ abstract class DownloadEventListener {
           final String? arg_id = (args[0] as String?);
           assert(arg_id != null,
               'Argument for dev.flutter.pigeon.kvideo.DownloadEventListener.onProgress was null, expected non-null String.');
-          final double? arg_progress = (args[1] as double?);
+          final int? arg_progress = (args[1] as int?);
           assert(arg_progress != null,
-              'Argument for dev.flutter.pigeon.kvideo.DownloadEventListener.onProgress was null, expected non-null double.');
+              'Argument for dev.flutter.pigeon.kvideo.DownloadEventListener.onProgress was null, expected non-null int.');
           try {
             api.onProgress(arg_id!, arg_progress!);
             return wrapResponse(empty: true);

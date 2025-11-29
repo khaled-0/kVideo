@@ -16,14 +16,8 @@ class EventListener implements DownloadEventListener {
   }
 
   @override
-  void onProgress(String id, double progress) {
+  void onProgress(String id, int progress) {
     print("Progress: $id $progress");
-  }
-
-  @override
-  List<TrackData> requestTrackSelection(List<TrackData> tracks) {
-    // TODO: implement requestTrackSelection
-    throw UnimplementedError();
   }
 }
 

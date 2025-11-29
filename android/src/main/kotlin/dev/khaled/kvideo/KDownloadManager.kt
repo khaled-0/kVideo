@@ -5,7 +5,6 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
-import android.util.Log
 import androidx.annotation.OptIn
 import androidx.core.net.toUri
 import androidx.media3.common.util.UnstableApi
@@ -28,11 +27,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.lang.Exception
 import java.util.UUID
 import java.util.concurrent.Executors
 
@@ -54,9 +51,10 @@ class KDownloadManager(
             Download.STATE_DOWNLOADING -> {
                 CoroutineScope(Dispatchers.IO).launch {
                     trackDownloadProgress(download).collect {
+                        if (it == null) return@collect
                         withContext(Dispatchers.Main) {
                             listener.onProgress(
-                                download.request.id, it!!.toDouble()
+                                download.request.id, it.toLong()
                             ) {}
                         }
                     }
@@ -112,6 +110,40 @@ class KDownloadManager(
 
     override fun removeAll() {
         DownloadService.sendRemoveAllDownloads(context, KDownloadService::class.java, false)
+    }
+
+    override fun getStatusFor(id: String): DownloadData? {
+        val download = DownloadManagerUtil.getDownloadManager(context).downloadIndex.getDownload(id)
+            ?: return null
+
+        val status: DownloadStatus = when (download.state) {
+            Download.STATE_DOWNLOADING -> DownloadStatus.DOWNLOADING
+            Download.STATE_COMPLETED -> DownloadStatus.FINISHED
+            Download.STATE_FAILED -> DownloadStatus.ERROR
+            Download.STATE_STOPPED -> DownloadStatus.ERROR
+            else -> DownloadStatus.WAITING
+        }
+
+        return DownloadData(
+            id = download.request.id,
+            progress = download.percentDownloaded.toLong(),
+            originUri = download.request.uri.toString(),
+            localUri = download.request.uri.toString(),
+            error = if (status == DownloadStatus.ERROR) download.failureReason.toString() else null,
+            status = status
+        )
+    }
+
+    override fun getAllDownloads(): List<String> {
+        val cursor = DownloadManagerUtil.getDownloadManager(context).downloadIndex.getDownloads()
+        val downloadIds = mutableListOf<String>()
+
+        while (cursor.moveToNext()) {
+            downloadIds.add(cursor.download.request.id)
+        }
+
+        cursor.close()
+        return downloadIds
     }
 
     companion object {

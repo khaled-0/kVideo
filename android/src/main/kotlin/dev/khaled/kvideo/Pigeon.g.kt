@@ -119,6 +119,20 @@ enum class TrackType(val raw: Int) {
   }
 }
 
+/** ---------- Downloader ---------- /// */
+enum class DownloadStatus(val raw: Int) {
+  DOWNLOADING(0),
+  WAITING(1),
+  ERROR(2),
+  FINISHED(3);
+
+  companion object {
+    fun ofRaw(raw: Int): DownloadStatus? {
+      return values().firstOrNull { it.raw == raw }
+    }
+  }
+}
+
 /** Generated class from Pigeon that represents data sent in messages. */
 data class VideoTextureData (
   val textureId: Long? = null,
@@ -350,6 +364,49 @@ data class TrackData (
 
   override fun hashCode(): Int = toList().hashCode()
 }
+
+/** Generated class from Pigeon that represents data sent in messages. */
+data class DownloadData (
+  val id: String? = null,
+  val progress: Long? = null,
+  val status: DownloadStatus? = null,
+  val originUri: String? = null,
+  val localUri: String? = null,
+  val error: String? = null
+)
+ {
+  companion object {
+    fun fromList(pigeonVar_list: List<Any?>): DownloadData {
+      val id = pigeonVar_list[0] as String?
+      val progress = pigeonVar_list[1] as Long?
+      val status = pigeonVar_list[2] as DownloadStatus?
+      val originUri = pigeonVar_list[3] as String?
+      val localUri = pigeonVar_list[4] as String?
+      val error = pigeonVar_list[5] as String?
+      return DownloadData(id, progress, status, originUri, localUri, error)
+    }
+  }
+  fun toList(): List<Any?> {
+    return listOf(
+      id,
+      progress,
+      status,
+      originUri,
+      localUri,
+      error,
+    )
+  }
+  override fun equals(other: Any?): Boolean {
+    if (other !is DownloadData) {
+      return false
+    }
+    if (this === other) {
+      return true
+    }
+    return PigeonPigeonUtils.deepEquals(toList(), other.toList())  }
+
+  override fun hashCode(): Int = toList().hashCode()
+}
 private open class PigeonPigeonCodec : StandardMessageCodec() {
   override fun readValueOfType(type: Byte, buffer: ByteBuffer): Any? {
     return when (type) {
@@ -369,33 +426,43 @@ private open class PigeonPigeonCodec : StandardMessageCodec() {
         }
       }
       132.toByte() -> {
-        return (readValue(buffer) as? List<Any?>)?.let {
-          VideoTextureData.fromList(it)
+        return (readValue(buffer) as Long?)?.let {
+          DownloadStatus.ofRaw(it.toInt())
         }
       }
       133.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          Media.fromList(it)
+          VideoTextureData.fromList(it)
         }
       }
       134.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          PlayerConfiguration.fromList(it)
+          Media.fromList(it)
         }
       }
       135.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          BufferingConfig.fromList(it)
+          PlayerConfiguration.fromList(it)
         }
       }
       136.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          SeekConfig.fromList(it)
+          BufferingConfig.fromList(it)
         }
       }
       137.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
+          SeekConfig.fromList(it)
+        }
+      }
+      138.toByte() -> {
+        return (readValue(buffer) as? List<Any?>)?.let {
           TrackData.fromList(it)
+        }
+      }
+      139.toByte() -> {
+        return (readValue(buffer) as? List<Any?>)?.let {
+          DownloadData.fromList(it)
         }
       }
       else -> super.readValueOfType(type, buffer)
@@ -415,28 +482,36 @@ private open class PigeonPigeonCodec : StandardMessageCodec() {
         stream.write(131)
         writeValue(stream, value.raw.toLong())
       }
-      is VideoTextureData -> {
+      is DownloadStatus -> {
         stream.write(132)
-        writeValue(stream, value.toList())
+        writeValue(stream, value.raw.toLong())
       }
-      is Media -> {
+      is VideoTextureData -> {
         stream.write(133)
         writeValue(stream, value.toList())
       }
-      is PlayerConfiguration -> {
+      is Media -> {
         stream.write(134)
         writeValue(stream, value.toList())
       }
-      is BufferingConfig -> {
+      is PlayerConfiguration -> {
         stream.write(135)
         writeValue(stream, value.toList())
       }
-      is SeekConfig -> {
+      is BufferingConfig -> {
         stream.write(136)
         writeValue(stream, value.toList())
       }
-      is TrackData -> {
+      is SeekConfig -> {
         stream.write(137)
+        writeValue(stream, value.toList())
+      }
+      is TrackData -> {
+        stream.write(138)
+        writeValue(stream, value.toList())
+      }
+      is DownloadData -> {
+        stream.write(139)
         writeValue(stream, value.toList())
       }
       else -> super.writeValue(stream, value)
@@ -1027,11 +1102,7 @@ class PlayerEventListener(private val binaryMessenger: BinaryMessenger, private 
     }
   }
 }
-/**
- * ---------- Downloader ---------- ///
- *
- * Generated interface from Pigeon that represents a handler of messages from Flutter.
- */
+/** Generated interface from Pigeon that represents a handler of messages from Flutter. */
 interface DownloadManagerApi {
   /** ExoPlayer can't use per media headers */
   fun setAndroidDataSourceHeaders(headers: Map<String, String>)
@@ -1039,6 +1110,10 @@ interface DownloadManagerApi {
   fun download(media: Media): String?
   fun remove(id: String)
   fun removeAll()
+  /** Returns null if download not found */
+  fun getStatusFor(id: String): DownloadData?
+  /** Returns id's for all downloads */
+  fun getAllDownloads(): List<String>
 
   companion object {
     /** The codec used by DownloadManagerApi. */
@@ -1118,6 +1193,38 @@ interface DownloadManagerApi {
           channel.setMessageHandler(null)
         }
       }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.kvideo.DownloadManagerApi.getStatusFor$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val idArg = args[0] as String
+            val wrapped: List<Any?> = try {
+              listOf(api.getStatusFor(idArg))
+            } catch (exception: Throwable) {
+              PigeonPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.kvideo.DownloadManagerApi.getAllDownloads$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { _, reply ->
+            val wrapped: List<Any?> = try {
+              listOf(api.getAllDownloads())
+            } catch (exception: Throwable) {
+              PigeonPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
     }
   }
 }
@@ -1129,27 +1236,7 @@ class DownloadEventListener(private val binaryMessenger: BinaryMessenger, privat
       PigeonPigeonCodec()
     }
   }
-  fun requestTrackSelection(tracksArg: List<TrackData>, callback: (Result<List<TrackData>>) -> Unit)
-{
-    val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
-    val channelName = "dev.flutter.pigeon.kvideo.DownloadEventListener.requestTrackSelection$separatedMessageChannelSuffix"
-    val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
-    channel.send(listOf(tracksArg)) {
-      if (it is List<*>) {
-        if (it.size > 1) {
-          callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))
-        } else if (it[0] == null) {
-          callback(Result.failure(FlutterError("null-error", "Flutter api returned null value for non-null return value.", "")))
-        } else {
-          val output = it[0] as List<TrackData>
-          callback(Result.success(output))
-        }
-      } else {
-        callback(Result.failure(PigeonPigeonUtils.createConnectionError(channelName)))
-      } 
-    }
-  }
-  fun onProgress(idArg: String, progressArg: Double, callback: (Result<Unit>) -> Unit)
+  fun onProgress(idArg: String, progressArg: Long, callback: (Result<Unit>) -> Unit)
 {
     val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
     val channelName = "dev.flutter.pigeon.kvideo.DownloadEventListener.onProgress$separatedMessageChannelSuffix"

@@ -101,7 +101,6 @@ class PlayerEventHandler: NSObject {
             break
         }
 
-        print("Update \(keyPath) \(change?.debugDescription)")
     }
 
     @objc func itemDidPlayToEndTime(_ notification: Notification) {

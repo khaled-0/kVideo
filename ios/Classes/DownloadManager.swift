@@ -15,7 +15,6 @@ class DownloadManager: NSObject, DownloadManagerApi {
 
     // MARK: - Internal Storage
     private var session: AVAssetDownloadURLSession!
-    private var activeTasks: [String: AVAssetDownloadTask] = [:]
 
     init(messenger: FlutterBinaryMessenger) {
         self.listener = DownloadEventListener(binaryMessenger: messenger)
@@ -56,7 +55,6 @@ class DownloadManager: NSObject, DownloadManagerApi {
 
         guard let task else { return nil }
 
-        activeTasks[assetId] = task
         task.taskDescription = assetId
         task.resume()
         return assetId
@@ -64,16 +62,13 @@ class DownloadManager: NSObject, DownloadManagerApi {
 
     /// Cancel a download
     func remove(id: String) throws {
-        guard let task = activeTasks[id] else { return }
+        guard let task = getTasks().first(where: { $0.taskDescription == id })
+        else { return }
         task.cancel()
-        activeTasks.removeValue(forKey: id)
     }
 
     func removeAll() throws {
-        for (key, value) in activeTasks {
-            value.cancel()
-            activeTasks.removeValue(forKey: key)
-        }
+        session.invalidateAndCancel()
     }
 
     /// Resume pending tasks after app launch
@@ -81,18 +76,83 @@ class DownloadManager: NSObject, DownloadManagerApi {
         session.getAllTasks { tasks in
             tasks.forEach { task in
                 if task.state == .completed { return }
-                guard let downloadTask = task as? AVAssetDownloadTask else {
-                    return
-                }
+                guard task as? AVAssetDownloadTask != nil else { return }
                 guard let assetId = task.taskDescription else { return }
-                self.activeTasks[assetId] = downloadTask
                 task.resume()
                 print("Restored pending download for assetId: \(assetId)")
             }
         }
     }
-    
-    func setAndroidDataSourceHeaders(headers: [String : String]) throws {}
+
+    func getStatusFor(id: String) throws -> DownloadData? {
+        guard let task = getTasks().first(where: { $0.taskDescription == id })
+        else { return nil }
+
+        guard let downloadTask = task as? URLSessionDownloadTask else {
+            return nil
+        }
+
+        // Extract progress as a percentage
+        let bytesReceived = downloadTask.countOfBytesReceived
+        let bytesExpected = downloadTask.countOfBytesExpectedToReceive
+
+        var progress: Int64 = 0
+        if bytesExpected > 0 {
+            progress = Int64(
+                (Double(bytesReceived) / Double(bytesExpected)) * 100
+            )
+        }
+
+        // Determine the status based on the task's state
+        var status: DownloadStatus
+        switch downloadTask.state {
+        case .running:
+            status = .downloading
+        case .suspended:
+            status = .waiting
+        case .canceling:
+            status = .waiting
+        case .completed:
+            status = .finished
+        @unknown default:
+            status = .waiting
+        }
+
+        if downloadTask.error != nil { status = .error }
+
+        // Create a DownloadData object
+        let downloadData = DownloadData(
+            id: downloadTask.taskDescription,
+            progress: progress,
+            status: status,
+            originUri: downloadTask.originalRequest?.url?.absoluteString,
+            localUri: downloadTask.response?.url?.absoluteString,
+            error: downloadTask.error?.localizedDescription
+        )
+
+        return downloadData
+    }
+
+    func getAllDownloads() throws -> [String] {
+        return getTasks().compactMap { task in
+            return task.taskDescription
+        }
+    }
+
+    func setAndroidDataSourceHeaders(headers: [String: String]) throws {}
+
+    private func getTasks() -> [URLSessionTask] {
+        var downloadTasks: [URLSessionTask] = []
+        session.getAllTasks { tasks in
+            tasks.forEach { task in
+                if task.state == .running && task is URLSessionDownloadTask {
+                    downloadTasks.append(task)
+                }
+            }
+        }
+
+        return downloadTasks
+    }
 }
 
 // MARK: - Event Listener
@@ -109,15 +169,15 @@ extension DownloadManager: AVAssetDownloadDelegate {
 
         guard let id = assetDownloadTask.taskDescription else { return }
 
-        let loadedSeconds =
-            loadedTimeRanges
-            .map { $0.timeRangeValue.duration.seconds }
-            .reduce(0, +)
+        let bytesReceived = assetDownloadTask.countOfBytesReceived
+        let bytesExpected = assetDownloadTask.countOfBytesExpectedToReceive
 
-        let totalSeconds = timeRangeExpectedToLoad.duration.seconds
+        if bytesExpected < 0 { return }
+        let progress = Int64(
+            (Double(bytesReceived) / Double(bytesExpected)) * 100
+        )
+        self.listener.onProgress(id: id, progress: progress) { _ in }
 
-        let progress = loadedSeconds / totalSeconds
-        self.listener.onProgress(id: id, progress: progress * 100) { _ in }
     }
 
     /// Completion
@@ -127,7 +187,6 @@ extension DownloadManager: AVAssetDownloadDelegate {
         didFinishDownloadingTo location: URL
     ) {
         guard let id = assetDownloadTask.taskDescription else { return }
-        activeTasks.removeValue(forKey: id)
         self.listener.onCompletion(id: id, location: location.absoluteString) {
             _ in
         }
@@ -142,7 +201,6 @@ extension DownloadManager: AVAssetDownloadDelegate {
     ) {
 
         guard let error, let id = task.taskDescription else { return }
-        activeTasks.removeValue(forKey: id)
         self.listener.onError(id: id, error: error.localizedDescription) {
             _ in
         }

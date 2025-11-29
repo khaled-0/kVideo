@@ -172,6 +172,22 @@ class TrackData {
 
 /// ---------- Downloader ---------- ///
 
+enum DownloadStatus { downloading, waiting, error, finished }
+
+class DownloadData {
+  String? id;
+  int? progress;
+  DownloadStatus? status;
+
+  // The https uri of the media
+  String? originUri;
+
+  // The local path. (Same as originUri in android. Exoplayer cache will pick it up)
+  String? localUri;
+
+  String? error;
+}
+
 @HostApi()
 abstract class DownloadManagerApi {
   /// ExoPlayer can't use per media headers
@@ -183,14 +199,21 @@ abstract class DownloadManagerApi {
   void remove(String id);
 
   void removeAll();
+
+  /// Returns null if download not found
+  DownloadData? getStatusFor(String id);
+
+  /// Returns id's for all downloads
+  List<String> getAllDownloads();
 }
 
 @FlutterApi()
 abstract class DownloadEventListener {
   // TODO: Return list of Video & Audio to download from available tracks
-  List<TrackData> requestTrackSelection(List<TrackData> tracks);
+  // List<TrackData> requestTrackSelection(List<TrackData> tracks);
 
-  void onProgress(String id, double progress);
+  // Progress between 0 to 100
+  void onProgress(String id, int progress);
 
   void onCompletion(String id, String location);
 

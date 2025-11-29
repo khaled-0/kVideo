@@ -152,6 +152,14 @@ enum TrackType: Int {
   case unknown = 3
 }
 
+/// ---------- Downloader ---------- ///
+enum DownloadStatus: Int {
+  case downloading = 0
+  case waiting = 1
+  case error = 2
+  case finished = 3
+}
+
 /// Generated class from Pigeon that represents data sent in messages.
 struct VideoTextureData: Hashable {
   var textureId: Int64? = nil
@@ -385,6 +393,51 @@ struct TrackData: Hashable {
   }
 }
 
+/// Generated class from Pigeon that represents data sent in messages.
+struct DownloadData: Hashable {
+  var id: String? = nil
+  var progress: Int64? = nil
+  var status: DownloadStatus? = nil
+  var originUri: String? = nil
+  var localUri: String? = nil
+  var error: String? = nil
+
+
+  // swift-format-ignore: AlwaysUseLowerCamelCase
+  static func fromList(_ pigeonVar_list: [Any?]) -> DownloadData? {
+    let id: String? = nilOrValue(pigeonVar_list[0])
+    let progress: Int64? = nilOrValue(pigeonVar_list[1])
+    let status: DownloadStatus? = nilOrValue(pigeonVar_list[2])
+    let originUri: String? = nilOrValue(pigeonVar_list[3])
+    let localUri: String? = nilOrValue(pigeonVar_list[4])
+    let error: String? = nilOrValue(pigeonVar_list[5])
+
+    return DownloadData(
+      id: id,
+      progress: progress,
+      status: status,
+      originUri: originUri,
+      localUri: localUri,
+      error: error
+    )
+  }
+  func toList() -> [Any?] {
+    return [
+      id,
+      progress,
+      status,
+      originUri,
+      localUri,
+      error,
+    ]
+  }
+  static func == (lhs: DownloadData, rhs: DownloadData) -> Bool {
+    return deepEqualsPigeon(lhs.toList(), rhs.toList())  }
+  func hash(into hasher: inout Hasher) {
+    deepHashPigeon(value: toList(), hasher: &hasher)
+  }
+}
+
 private class PigeonPigeonCodecReader: FlutterStandardReader {
   override func readValue(ofType type: UInt8) -> Any? {
     switch type {
@@ -407,17 +460,25 @@ private class PigeonPigeonCodecReader: FlutterStandardReader {
       }
       return nil
     case 132:
-      return VideoTextureData.fromList(self.readValue() as! [Any?])
+      let enumResultAsInt: Int? = nilOrValue(self.readValue() as! Int?)
+      if let enumResultAsInt = enumResultAsInt {
+        return DownloadStatus(rawValue: enumResultAsInt)
+      }
+      return nil
     case 133:
-      return Media.fromList(self.readValue() as! [Any?])
+      return VideoTextureData.fromList(self.readValue() as! [Any?])
     case 134:
-      return PlayerConfiguration.fromList(self.readValue() as! [Any?])
+      return Media.fromList(self.readValue() as! [Any?])
     case 135:
-      return BufferingConfig.fromList(self.readValue() as! [Any?])
+      return PlayerConfiguration.fromList(self.readValue() as! [Any?])
     case 136:
-      return SeekConfig.fromList(self.readValue() as! [Any?])
+      return BufferingConfig.fromList(self.readValue() as! [Any?])
     case 137:
+      return SeekConfig.fromList(self.readValue() as! [Any?])
+    case 138:
       return TrackData.fromList(self.readValue() as! [Any?])
+    case 139:
+      return DownloadData.fromList(self.readValue() as! [Any?])
     default:
       return super.readValue(ofType: type)
     }
@@ -435,23 +496,29 @@ private class PigeonPigeonCodecWriter: FlutterStandardWriter {
     } else if let value = value as? TrackType {
       super.writeByte(131)
       super.writeValue(value.rawValue)
-    } else if let value = value as? VideoTextureData {
+    } else if let value = value as? DownloadStatus {
       super.writeByte(132)
-      super.writeValue(value.toList())
-    } else if let value = value as? Media {
+      super.writeValue(value.rawValue)
+    } else if let value = value as? VideoTextureData {
       super.writeByte(133)
       super.writeValue(value.toList())
-    } else if let value = value as? PlayerConfiguration {
+    } else if let value = value as? Media {
       super.writeByte(134)
       super.writeValue(value.toList())
-    } else if let value = value as? BufferingConfig {
+    } else if let value = value as? PlayerConfiguration {
       super.writeByte(135)
       super.writeValue(value.toList())
-    } else if let value = value as? SeekConfig {
+    } else if let value = value as? BufferingConfig {
       super.writeByte(136)
       super.writeValue(value.toList())
-    } else if let value = value as? TrackData {
+    } else if let value = value as? SeekConfig {
       super.writeByte(137)
+      super.writeValue(value.toList())
+    } else if let value = value as? TrackData {
+      super.writeByte(138)
+      super.writeValue(value.toList())
+    } else if let value = value as? DownloadData {
+      super.writeByte(139)
       super.writeValue(value.toList())
     } else {
       super.writeValue(value)
@@ -1014,8 +1081,6 @@ class PlayerEventListener: PlayerEventListenerProtocol {
     }
   }
 }
-/// ---------- Downloader ---------- ///
-///
 /// Generated protocol from Pigeon that represents a handler of messages from Flutter.
 protocol DownloadManagerApi {
   /// ExoPlayer can't use per media headers
@@ -1024,6 +1089,10 @@ protocol DownloadManagerApi {
   func download(media: Media) throws -> String?
   func remove(id: String) throws
   func removeAll() throws
+  /// Returns null if download not found
+  func getStatusFor(id: String) throws -> DownloadData?
+  /// Returns id's for all downloads
+  func getAllDownloads() throws -> [String]
 }
 
 /// Generated setup class from Pigeon to handle messages through the `binaryMessenger`.
@@ -1092,12 +1161,41 @@ class DownloadManagerApiSetup {
     } else {
       removeAllChannel.setMessageHandler(nil)
     }
+    /// Returns null if download not found
+    let getStatusForChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.kvideo.DownloadManagerApi.getStatusFor\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      getStatusForChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let idArg = args[0] as! String
+        do {
+          let result = try api.getStatusFor(id: idArg)
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      getStatusForChannel.setMessageHandler(nil)
+    }
+    /// Returns id's for all downloads
+    let getAllDownloadsChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.kvideo.DownloadManagerApi.getAllDownloads\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      getAllDownloadsChannel.setMessageHandler { _, reply in
+        do {
+          let result = try api.getAllDownloads()
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      getAllDownloadsChannel.setMessageHandler(nil)
+    }
   }
 }
 /// Generated protocol from Pigeon that represents Flutter messages that can be called from Swift.
 protocol DownloadEventListenerProtocol {
-  func requestTrackSelection(tracks tracksArg: [TrackData], completion: @escaping (Result<[TrackData], PigeonError>) -> Void)
-  func onProgress(id idArg: String, progress progressArg: Double, completion: @escaping (Result<Void, PigeonError>) -> Void)
+  func onProgress(id idArg: String, progress progressArg: Int64, completion: @escaping (Result<Void, PigeonError>) -> Void)
   func onCompletion(id idArg: String, location locationArg: String, completion: @escaping (Result<Void, PigeonError>) -> Void)
   func onError(id idArg: String, error errorArg: String, completion: @escaping (Result<Void, PigeonError>) -> Void)
 }
@@ -1111,28 +1209,7 @@ class DownloadEventListener: DownloadEventListenerProtocol {
   var codec: PigeonPigeonCodec {
     return PigeonPigeonCodec.shared
   }
-  func requestTrackSelection(tracks tracksArg: [TrackData], completion: @escaping (Result<[TrackData], PigeonError>) -> Void) {
-    let channelName: String = "dev.flutter.pigeon.kvideo.DownloadEventListener.requestTrackSelection\(messageChannelSuffix)"
-    let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
-    channel.sendMessage([tracksArg] as [Any?]) { response in
-      guard let listResponse = response as? [Any?] else {
-        completion(.failure(createConnectionError(withChannelName: channelName)))
-        return
-      }
-      if listResponse.count > 1 {
-        let code: String = listResponse[0] as! String
-        let message: String? = nilOrValue(listResponse[1])
-        let details: String? = nilOrValue(listResponse[2])
-        completion(.failure(PigeonError(code: code, message: message, details: details)))
-      } else if listResponse[0] == nil {
-        completion(.failure(PigeonError(code: "null-error", message: "Flutter api returned null value for non-null return value.", details: "")))
-      } else {
-        let result = listResponse[0] as! [TrackData]
-        completion(.success(result))
-      }
-    }
-  }
-  func onProgress(id idArg: String, progress progressArg: Double, completion: @escaping (Result<Void, PigeonError>) -> Void) {
+  func onProgress(id idArg: String, progress progressArg: Int64, completion: @escaping (Result<Void, PigeonError>) -> Void) {
     let channelName: String = "dev.flutter.pigeon.kvideo.DownloadEventListener.onProgress\(messageChannelSuffix)"
     let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
     channel.sendMessage([idArg, progressArg] as [Any?]) { response in
