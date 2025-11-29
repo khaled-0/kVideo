@@ -1018,9 +1018,12 @@ class PlayerEventListener: PlayerEventListenerProtocol {
 ///
 /// Generated protocol from Pigeon that represents a handler of messages from Flutter.
 protocol DownloadManagerApi {
+  /// ExoPlayer can't use per media headers
+  func setAndroidDataSourceHeaders(headers: [String: String]) throws
   /// Returns a download id if task is created
   func download(media: Media) throws -> String?
-  func cancel(id: String) throws
+  func remove(id: String) throws
+  func removeAll() throws
 }
 
 /// Generated setup class from Pigeon to handle messages through the `binaryMessenger`.
@@ -1029,6 +1032,22 @@ class DownloadManagerApiSetup {
   /// Sets up an instance of `DownloadManagerApi` to handle messages through the `binaryMessenger`.
   static func setUp(binaryMessenger: FlutterBinaryMessenger, api: DownloadManagerApi?, messageChannelSuffix: String = "") {
     let channelSuffix = messageChannelSuffix.count > 0 ? ".\(messageChannelSuffix)" : ""
+    /// ExoPlayer can't use per media headers
+    let setAndroidDataSourceHeadersChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.kvideo.DownloadManagerApi.setAndroidDataSourceHeaders\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      setAndroidDataSourceHeadersChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let headersArg = args[0] as! [String: String]
+        do {
+          try api.setAndroidDataSourceHeaders(headers: headersArg)
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      setAndroidDataSourceHeadersChannel.setMessageHandler(nil)
+    }
     /// Returns a download id if task is created
     let downloadChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.kvideo.DownloadManagerApi.download\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
@@ -1045,20 +1064,33 @@ class DownloadManagerApiSetup {
     } else {
       downloadChannel.setMessageHandler(nil)
     }
-    let cancelChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.kvideo.DownloadManagerApi.cancel\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    let removeChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.kvideo.DownloadManagerApi.remove\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
-      cancelChannel.setMessageHandler { message, reply in
+      removeChannel.setMessageHandler { message, reply in
         let args = message as! [Any?]
         let idArg = args[0] as! String
         do {
-          try api.cancel(id: idArg)
+          try api.remove(id: idArg)
           reply(wrapResult(nil))
         } catch {
           reply(wrapError(error))
         }
       }
     } else {
-      cancelChannel.setMessageHandler(nil)
+      removeChannel.setMessageHandler(nil)
+    }
+    let removeAllChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.kvideo.DownloadManagerApi.removeAll\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      removeAllChannel.setMessageHandler { _, reply in
+        do {
+          try api.removeAll()
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      removeAllChannel.setMessageHandler(nil)
     }
   }
 }

@@ -174,10 +174,15 @@ class TrackData {
 
 @HostApi()
 abstract class DownloadManagerApi {
+  /// ExoPlayer can't use per media headers
+  void setAndroidDataSourceHeaders(Map<String, String> headers);
+
   /// Returns a download id if task is created
   String? download(Media media);
 
-  void cancel(String id);
+  void remove(String id);
+
+  void removeAll();
 }
 
 @FlutterApi()
@@ -186,6 +191,8 @@ abstract class DownloadEventListener {
   List<TrackData> requestTrackSelection(List<TrackData> tracks);
 
   void onProgress(String id, double progress);
+
   void onCompletion(String id, String location);
+
   void onError(String id, String error);
 }

@@ -10,6 +10,7 @@ import Flutter
 import Foundation
 
 class DownloadManager: NSObject, DownloadManagerApi {
+
     private let listener: DownloadEventListener
 
     // MARK: - Internal Storage
@@ -62,10 +63,17 @@ class DownloadManager: NSObject, DownloadManagerApi {
     }
 
     /// Cancel a download
-    func cancel(id: String) throws {
+    func remove(id: String) throws {
         guard let task = activeTasks[id] else { return }
         task.cancel()
         activeTasks.removeValue(forKey: id)
+    }
+
+    func removeAll() throws {
+        for (key, value) in activeTasks {
+            value.cancel()
+            activeTasks.removeValue(forKey: key)
+        }
     }
 
     /// Resume pending tasks after app launch
@@ -83,6 +91,8 @@ class DownloadManager: NSObject, DownloadManagerApi {
             }
         }
     }
+    
+    func setAndroidDataSourceHeaders(headers: [String : String]) throws {}
 }
 
 // MARK: - Event Listener
@@ -107,7 +117,7 @@ extension DownloadManager: AVAssetDownloadDelegate {
         let totalSeconds = timeRangeExpectedToLoad.duration.seconds
 
         let progress = loadedSeconds / totalSeconds
-        self.listener.onProgress(id: id, progress: progress) { _ in }
+        self.listener.onProgress(id: id, progress: progress * 100) { _ in }
     }
 
     /// Completion

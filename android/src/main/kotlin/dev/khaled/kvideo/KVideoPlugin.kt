@@ -1,10 +1,7 @@
 package dev.khaled.kvideo
 
-import PlayerControllerApi
-import PlayerInstance
 import android.content.Context
 import android.view.View
-import android.view.ViewParent
 import androidx.annotation.OptIn
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.PlayerView.SHOW_BUFFERING_NEVER
@@ -40,6 +37,8 @@ class KVideoPlugin : FlutterPlugin, PlayerInstance {
                 controllers::getValue
             )
         )
+
+        DownloadManagerApi.setUp(binaryMessenger, KDownloadManager(context, binaryMessenger))
     }
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {

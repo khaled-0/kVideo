@@ -1,13 +1,5 @@
 package dev.khaled.kvideo
 
-import BoxFitMode
-import Media
-import PlaybackStatus
-import PlayerConfiguration
-import PlayerControllerApi
-import TrackData
-import TrackType
-import VideoTextureData
 import android.content.Context
 import android.content.Intent
 import android.view.SurfaceView
@@ -23,6 +15,7 @@ import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.util.Log
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.drm.DefaultDrmSessionManager
@@ -143,7 +136,11 @@ class PlayerController(
         }.build()
 
 
-        val dataSourceFactory = DefaultHttpDataSource.Factory().setDefaultRequestProperties(headers)
+        val dataSourceFactory = CacheDataSource.Factory().setCache(KDownloadManager.cache(context))
+            .setCacheWriteDataSinkFactory(null)
+            .setUpstreamDataSourceFactory(DefaultHttpDataSource.Factory().apply {
+                setDefaultRequestProperties(headers)
+            })
 
         val mediaSourceFactory = DefaultMediaSourceFactory(context).apply {
             setDataSourceFactory(dataSourceFactory)

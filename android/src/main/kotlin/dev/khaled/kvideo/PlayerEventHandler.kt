@@ -1,6 +1,5 @@
 package dev.khaled.kvideo
 
-import PlayerEventListener
 import androidx.media3.common.C
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.PlaybackParameters

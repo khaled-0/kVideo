@@ -1033,9 +1033,12 @@ class PlayerEventListener(private val binaryMessenger: BinaryMessenger, private 
  * Generated interface from Pigeon that represents a handler of messages from Flutter.
  */
 interface DownloadManagerApi {
+  /** ExoPlayer can't use per media headers */
+  fun setAndroidDataSourceHeaders(headers: Map<String, String>)
   /** Returns a download id if task is created */
   fun download(media: Media): String?
-  fun cancel(id: String)
+  fun remove(id: String)
+  fun removeAll()
 
   companion object {
     /** The codec used by DownloadManagerApi. */
@@ -1046,6 +1049,24 @@ interface DownloadManagerApi {
     @JvmOverloads
     fun setUp(binaryMessenger: BinaryMessenger, api: DownloadManagerApi?, messageChannelSuffix: String = "") {
       val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.kvideo.DownloadManagerApi.setAndroidDataSourceHeaders$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val headersArg = args[0] as Map<String, String>
+            val wrapped: List<Any?> = try {
+              api.setAndroidDataSourceHeaders(headersArg)
+              listOf(null)
+            } catch (exception: Throwable) {
+              PigeonPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
       run {
         val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.kvideo.DownloadManagerApi.download$separatedMessageChannelSuffix", codec)
         if (api != null) {
@@ -1064,13 +1085,29 @@ interface DownloadManagerApi {
         }
       }
       run {
-        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.kvideo.DownloadManagerApi.cancel$separatedMessageChannelSuffix", codec)
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.kvideo.DownloadManagerApi.remove$separatedMessageChannelSuffix", codec)
         if (api != null) {
           channel.setMessageHandler { message, reply ->
             val args = message as List<Any?>
             val idArg = args[0] as String
             val wrapped: List<Any?> = try {
-              api.cancel(idArg)
+              api.remove(idArg)
+              listOf(null)
+            } catch (exception: Throwable) {
+              PigeonPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.kvideo.DownloadManagerApi.removeAll$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { _, reply ->
+            val wrapped: List<Any?> = try {
+              api.removeAll()
               listOf(null)
             } catch (exception: Throwable) {
               PigeonPigeonUtils.wrapError(exception)
