@@ -13,14 +13,9 @@ import UIKit
 class PlayerEventHandler: NSObject {
     private let listener: PlayerEventListener
     private var controller: PlayerController
+    
     private var timeObserver: Any?
-
     private var statusObserver: NSKeyValueObservation?
-    private var rateObserver: NSKeyValueObservation?
-    private var errorObserver: NSKeyValueObservation?
-    private var videoSizeObserver: NSKeyValueObservation?
-    private var playbackLikelyObserver: NSKeyValueObservation?
-
     private var observerAdded = false
 
     init(messenger: FlutterBinaryMessenger, controller: PlayerController) {
@@ -41,6 +36,12 @@ class PlayerEventHandler: NSObject {
         let player = controller.player
         guard let item = player.currentItem else { return }
 
+        player.addObserver(
+            self,
+            forKeyPath: "timeControlStatus",
+            options: [],
+            context: nil
+        )
         player.addObserver(self, forKeyPath: "rate", options: [], context: nil)
         item.addObserver(
             self,
@@ -63,17 +64,25 @@ class PlayerEventHandler: NSObject {
         )
 
         observerAdded = true
+        attachObservers()
     }
 
     func removeObservers() {
         let player = controller.player
-        if let observer = timeObserver {
-            controller.player.removeTimeObserver(observer)
-            timeObserver = nil
+        if let timeObserver = timeObserver {
+            controller.player.removeTimeObserver(timeObserver)
+            self.timeObserver = nil
         }
 
+        if let statusObserver = statusObserver {
+            controller.player.removeTimeObserver(statusObserver)
+            self.statusObserver = nil
+        }
+
+        
         guard observerAdded == true else { return }
 
+        player.removeObserver(self, forKeyPath: "timeControlStatus")
         player.removeObserver(self, forKeyPath: "rate")
         player.currentItem?.removeObserver(self, forKeyPath: "status")
         player.currentItem?.removeObserver(self, forKeyPath: "loadedTimeRanges")
@@ -90,7 +99,7 @@ class PlayerEventHandler: NSObject {
         guard let item = object as? AVPlayerItem else { return }
 
         switch keyPath {
-        case "status":
+        case "status", "timeControlStatus":
             handleStatusUpdate(item: item)
         case "loadedTimeRanges":
             sendBufferUpdate(item: item)
@@ -194,9 +203,10 @@ extension PlayerEventHandler {
         let player = controller.player
 
         // Observe playback rate
-        rateObserver = player.observe(\.rate, options: [.new]) {
+        statusObserver = player.observe(\.timeControlStatus, options: [.new]) {
             [weak self] player, _ in
-            self?.handlePlaybackSpeedChange(player)
+            guard player.currentItem != nil else {return}
+            self?.handleStatusUpdate(item: player.currentItem!)
         }
 
         // Observe playback duration updates
@@ -209,10 +219,6 @@ extension PlayerEventHandler {
 
     }
 
-    // Handle Playback Speed Changes
-    func handlePlaybackSpeedChange(_ player: AVPlayer) {
-        self.listener.onPlaybackSpeedUpdate(speed: Double(player.rate)) { _ in }
-    }
 
     // Handle Item Duration Update
     @objc func handleItemDurationUpdate(notification: Notification) {

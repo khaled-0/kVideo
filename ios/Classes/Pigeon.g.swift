@@ -540,6 +540,7 @@ class PigeonPigeonCodec: FlutterStandardMessageCodec, @unchecked Sendable {
   static let shared = PigeonPigeonCodec(readerWriter: PigeonPigeonCodecReaderWriter())
 }
 
+
 /// Run the following to generate pigeon
 /// dart run pigeon --input pigeons/pigeon.dart
 /// TODO Don't depend on these directly, remove constructor
@@ -1087,12 +1088,12 @@ protocol DownloadManagerApi {
   func setAndroidDataSourceHeaders(headers: [String: String]) throws
   /// Returns a download id if task is created
   func download(media: Media) throws -> String?
-  func remove(id: String) throws
-  func removeAll() throws
+  func remove(id: String, completion: @escaping (Result<Void, Error>) -> Void)
+  func removeAll(completion: @escaping (Result<Void, Error>) -> Void)
   /// Returns null if download not found
-  func getStatusFor(id: String) throws -> DownloadData?
+  func getStatusFor(id: String, completion: @escaping (Result<DownloadData?, Error>) -> Void)
   /// Returns id's for all downloads
-  func getAllDownloads() throws -> [String]
+  func getAllDownloads(completion: @escaping (Result<[String], Error>) -> Void)
 }
 
 /// Generated setup class from Pigeon to handle messages through the `binaryMessenger`.
@@ -1138,11 +1139,13 @@ class DownloadManagerApiSetup {
       removeChannel.setMessageHandler { message, reply in
         let args = message as! [Any?]
         let idArg = args[0] as! String
-        do {
-          try api.remove(id: idArg)
-          reply(wrapResult(nil))
-        } catch {
-          reply(wrapError(error))
+        api.remove(id: idArg) { result in
+          switch result {
+          case .success:
+            reply(wrapResult(nil))
+          case .failure(let error):
+            reply(wrapError(error))
+          }
         }
       }
     } else {
@@ -1151,11 +1154,13 @@ class DownloadManagerApiSetup {
     let removeAllChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.kvideo.DownloadManagerApi.removeAll\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       removeAllChannel.setMessageHandler { _, reply in
-        do {
-          try api.removeAll()
-          reply(wrapResult(nil))
-        } catch {
-          reply(wrapError(error))
+        api.removeAll { result in
+          switch result {
+          case .success:
+            reply(wrapResult(nil))
+          case .failure(let error):
+            reply(wrapError(error))
+          }
         }
       }
     } else {
@@ -1167,11 +1172,13 @@ class DownloadManagerApiSetup {
       getStatusForChannel.setMessageHandler { message, reply in
         let args = message as! [Any?]
         let idArg = args[0] as! String
-        do {
-          let result = try api.getStatusFor(id: idArg)
-          reply(wrapResult(result))
-        } catch {
-          reply(wrapError(error))
+        api.getStatusFor(id: idArg) { result in
+          switch result {
+          case .success(let res):
+            reply(wrapResult(res))
+          case .failure(let error):
+            reply(wrapError(error))
+          }
         }
       }
     } else {
@@ -1181,11 +1188,13 @@ class DownloadManagerApiSetup {
     let getAllDownloadsChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.kvideo.DownloadManagerApi.getAllDownloads\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       getAllDownloadsChannel.setMessageHandler { _, reply in
-        do {
-          let result = try api.getAllDownloads()
-          reply(wrapResult(result))
-        } catch {
-          reply(wrapError(error))
+        api.getAllDownloads { result in
+          switch result {
+          case .success(let res):
+            reply(wrapResult(res))
+          case .failure(let error):
+            reply(wrapError(error))
+          }
         }
       }
     } else {

@@ -196,14 +196,18 @@ abstract class DownloadManagerApi {
   /// Returns a download id if task is created
   String? download(Media media);
 
+  @async
   void remove(String id);
 
+  @async
   void removeAll();
 
   /// Returns null if download not found
+  @async
   DownloadData? getStatusFor(String id);
 
   /// Returns id's for all downloads
+  @async
   List<String> getAllDownloads();
 }
 

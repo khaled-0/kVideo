@@ -226,6 +226,7 @@ public class PlayerController: NSObject, FlutterPlatformView,
         if player.timeControlStatus == .playing {
             return .playing
         }
+        
         if player.timeControlStatus == .paused {
             return .paused
         }

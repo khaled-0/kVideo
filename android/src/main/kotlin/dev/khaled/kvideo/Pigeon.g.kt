@@ -519,6 +519,7 @@ private open class PigeonPigeonCodec : StandardMessageCodec() {
   }
 }
 
+
 /**
  * Run the following to generate pigeon
  * dart run pigeon --input pigeons/pigeon.dart
@@ -1108,12 +1109,12 @@ interface DownloadManagerApi {
   fun setAndroidDataSourceHeaders(headers: Map<String, String>)
   /** Returns a download id if task is created */
   fun download(media: Media): String?
-  fun remove(id: String)
-  fun removeAll()
+  fun remove(id: String, callback: (Result<Unit>) -> Unit)
+  fun removeAll(callback: (Result<Unit>) -> Unit)
   /** Returns null if download not found */
-  fun getStatusFor(id: String): DownloadData?
+  fun getStatusFor(id: String, callback: (Result<DownloadData?>) -> Unit)
   /** Returns id's for all downloads */
-  fun getAllDownloads(): List<String>
+  fun getAllDownloads(callback: (Result<List<String>>) -> Unit)
 
   companion object {
     /** The codec used by DownloadManagerApi. */
@@ -1165,13 +1166,14 @@ interface DownloadManagerApi {
           channel.setMessageHandler { message, reply ->
             val args = message as List<Any?>
             val idArg = args[0] as String
-            val wrapped: List<Any?> = try {
-              api.remove(idArg)
-              listOf(null)
-            } catch (exception: Throwable) {
-              PigeonPigeonUtils.wrapError(exception)
+            api.remove(idArg) { result: Result<Unit> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(PigeonPigeonUtils.wrapError(error))
+              } else {
+                reply.reply(PigeonPigeonUtils.wrapResult(null))
+              }
             }
-            reply.reply(wrapped)
           }
         } else {
           channel.setMessageHandler(null)
@@ -1181,13 +1183,14 @@ interface DownloadManagerApi {
         val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.kvideo.DownloadManagerApi.removeAll$separatedMessageChannelSuffix", codec)
         if (api != null) {
           channel.setMessageHandler { _, reply ->
-            val wrapped: List<Any?> = try {
-              api.removeAll()
-              listOf(null)
-            } catch (exception: Throwable) {
-              PigeonPigeonUtils.wrapError(exception)
+            api.removeAll{ result: Result<Unit> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(PigeonPigeonUtils.wrapError(error))
+              } else {
+                reply.reply(PigeonPigeonUtils.wrapResult(null))
+              }
             }
-            reply.reply(wrapped)
           }
         } else {
           channel.setMessageHandler(null)
@@ -1199,12 +1202,15 @@ interface DownloadManagerApi {
           channel.setMessageHandler { message, reply ->
             val args = message as List<Any?>
             val idArg = args[0] as String
-            val wrapped: List<Any?> = try {
-              listOf(api.getStatusFor(idArg))
-            } catch (exception: Throwable) {
-              PigeonPigeonUtils.wrapError(exception)
+            api.getStatusFor(idArg) { result: Result<DownloadData?> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(PigeonPigeonUtils.wrapError(error))
+              } else {
+                val data = result.getOrNull()
+                reply.reply(PigeonPigeonUtils.wrapResult(data))
+              }
             }
-            reply.reply(wrapped)
           }
         } else {
           channel.setMessageHandler(null)
@@ -1214,12 +1220,15 @@ interface DownloadManagerApi {
         val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.kvideo.DownloadManagerApi.getAllDownloads$separatedMessageChannelSuffix", codec)
         if (api != null) {
           channel.setMessageHandler { _, reply ->
-            val wrapped: List<Any?> = try {
-              listOf(api.getAllDownloads())
-            } catch (exception: Throwable) {
-              PigeonPigeonUtils.wrapError(exception)
+            api.getAllDownloads{ result: Result<List<String>> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(PigeonPigeonUtils.wrapError(error))
+              } else {
+                val data = result.getOrNull()
+                reply.reply(PigeonPigeonUtils.wrapResult(data))
+              }
             }
-            reply.reply(wrapped)
           }
         } else {
           channel.setMessageHandler(null)
