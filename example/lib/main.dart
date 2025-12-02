@@ -38,10 +38,10 @@ void main() async {
 
   downloader.removeAll();
 
-  // final id = await downloader.download(
-  //   Media(url: urls[0], headers: {"hi": "bro"}),
-  // );
-  // print(id);
+  final id = await downloader.download(
+    Media(url: urls[1], headers: {"hi": "bro"}),
+  );
+  print(id);
 
   controller.initialize().then((_) {
     // controller.play(

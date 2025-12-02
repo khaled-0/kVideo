@@ -9,11 +9,11 @@ Pod::Spec.new do |s|
   s.description      = <<-DESC
 Flutter Video Player
                        DESC
-  s.homepage         = 'http://example.com'
+  s.homepage         = 'https://github.com/khaled-0/kVideo'
   s.license          = { :file => '../LICENSE' }
-  s.author           = { 'Your Company' => 'email@example.com' }
+  s.author           = { 'Khaled' => 'spkhalad@gmail.com' }
   s.source           = { :path => '.' }
-  s.source_files = 'Classes/**/*'
+  s.source_files = 'Classes/**/*', 'VidLoader/**/*'
   s.dependency 'Flutter'
   s.platform = :ios, '15.0'
 
@@ -22,6 +22,8 @@ Flutter Video Player
   s.swift_version = '5.0'
   
   s.dependency 'GoogleAds-IMA-iOS-SDK', '~> 3.28.10'
+  
+  s.exclude_files = 'VidLoader/VidLoader/Info.plist'
 
   # If your plugin requires a privacy manifest, for example if it uses any
   # required reason APIs, update the PrivacyInfo.xcprivacy file to describe your
