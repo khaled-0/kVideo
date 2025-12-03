@@ -30,12 +30,17 @@ public class KVideoPlugin: NSObject, FlutterPlugin, PlayerInstance {
             PlayerFactory { id in return controllers[id]! },
             withId: "dev.khaled.kvideo"
         )
-        
+
         // Download Manager
         let downloader = NewDownloadManager(messenger: registrar.messenger())
         DownloadManagerApiSetup.setUp(
             binaryMessenger: registrar.messenger(),
             api: downloader
+        )
+
+        // Necessary for PiP
+        try? AVAudioSession.sharedInstance().setCategory(
+            AVAudioSession.Category.playback
         )
     }
 
@@ -106,11 +111,11 @@ class PlayerView: UIView {
         super.init(frame: frame)
         setupAdContainer()
     }
-    
+
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-    
+
     private func setupAdContainer() {
         adContainerView.frame = bounds
         adContainerView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
