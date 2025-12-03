@@ -76,6 +76,14 @@ class KDownloadManager(
             Download.STATE_REMOVING -> {
                 listener.onRemoved(download.request.id) {}
             }
+
+            Download.STATE_QUEUED, Download.STATE_RESTARTING -> {
+                listener.onProgress(download.request.id, 0) {}
+            }
+
+            Download.STATE_STOPPED -> {
+                listener.onProgress(download.request.id, -1) {}
+            }
         }
     }
 
@@ -108,21 +116,23 @@ class KDownloadManager(
         return id
     }
 
-    override fun remove(id: String) {
+    override fun remove(id: String, callback: (Result<Unit>) -> Unit) {
         DownloadService.sendRemoveDownload(
             context, KDownloadService::class.java, id, false
         )
+        callback(Result.success(Unit))
     }
 
-    override fun removeAll() {
+    override fun removeAll(callback: (Result<Unit>) -> Unit) {
         DownloadService.sendRemoveAllDownloads(context, KDownloadService::class.java, false)
+        callback(Result.success(Unit))
     }
 
-    override fun getStatusFor(id: String): DownloadData? {
+    override fun getStatusFor(id: String, callback: (Result<DownloadData?>) -> Unit) {
         val download = DownloadManagerUtil.getDownloadManager(context).downloadIndex.getDownload(id)
-            ?: return null
+            ?: return callback(Result.success(null))
 
-        if (download.state == Download.STATE_REMOVING) return null
+        if (download.state == Download.STATE_REMOVING) return callback(Result.success(null))
 
         val status: DownloadStatus = when (download.state) {
             Download.STATE_DOWNLOADING -> DownloadStatus.DOWNLOADING
@@ -133,17 +143,21 @@ class KDownloadManager(
         }
 
 
-        return DownloadData(
-            id = download.request.id,
-            progress = download.percentDownloaded.toLong(),
-            originUri = download.request.uri.toString(),
-            localUri = download.request.uri.toString(),
-            error = if (status == DownloadStatus.ERROR) download.failureReason.toString() else null,
-            status = status
+        return callback(
+            Result.success(
+                DownloadData(
+                    id = download.request.id,
+                    progress = download.percentDownloaded.toLong(),
+                    originUri = download.request.uri.toString(),
+                    localUri = download.request.uri.toString(),
+                    error = if (status == DownloadStatus.ERROR) download.failureReason.toString() else null,
+                    status = status
+                )
+            )
         )
     }
 
-    override fun getAllDownloads(): List<String> {
+    override fun getAllDownloads(callback: (Result<List<String>>) -> Unit) {
         val cursor = DownloadManagerUtil.getDownloadManager(context).downloadIndex.getDownloads()
         val downloadIds = mutableListOf<String>()
 
@@ -153,7 +167,7 @@ class KDownloadManager(
         }
 
         cursor.close()
-        return downloadIds
+        return callback(Result.success(downloadIds))
     }
 
     companion object {

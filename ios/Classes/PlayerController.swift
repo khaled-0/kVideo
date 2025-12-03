@@ -81,24 +81,32 @@ public class PlayerController: NSObject, FlutterPlatformView,
             return
         }
 
-        let asset = AVURLAsset(
+        var asset = AVURLAsset(
             url: url,
             options: ["AVURLAssetHTTPHeaderFieldsKey": media.headers ?? [:]]
         )
 
         self.drmLoaderDelegate = nil
-        if let licenseUrl = media.drmLicenseUrl,
-            let certificate = media.drmCertificate,
-            let license = URL(string: licenseUrl)
-        {
-            self.drmLoaderDelegate = DRMLoaderDelegate(
-                certificate: certificate,
-                license: license
-            )
-            asset.resourceLoader.setDelegate(
-                self.drmLoaderDelegate,
-                queue: DispatchQueue(label: "drm", qos: .default)
-            )
+        
+        if url.scheme == "file" {
+            if let file = DownloadManager.session.asset(location: url) {
+                print("Playing file \(url.absoluteString)")
+                asset = file
+            }
+        } else {
+            if let licenseUrl = media.drmLicenseUrl,
+                let certificate = media.drmCertificate,
+                let license = URL(string: licenseUrl)
+            {
+                self.drmLoaderDelegate = DRMLoaderDelegate(
+                    certificate: certificate,
+                    license: license
+                )
+                asset.resourceLoader.setDelegate(
+                    self.drmLoaderDelegate,
+                    queue: DispatchQueue(label: "drm", qos: .default)
+                )
+            }
         }
 
         // TODO: IMA Ads equivalent (Google IMA for iOS)
@@ -226,7 +234,7 @@ public class PlayerController: NSObject, FlutterPlatformView,
         if player.timeControlStatus == .playing {
             return .playing
         }
-        
+
         if player.timeControlStatus == .paused {
             return .paused
         }

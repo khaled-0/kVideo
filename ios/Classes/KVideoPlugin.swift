@@ -32,7 +32,7 @@ public class KVideoPlugin: NSObject, FlutterPlugin, PlayerInstance {
         )
 
         // Download Manager
-        let downloader = NewDownloadManager(messenger: registrar.messenger())
+        let downloader = DownloadManager(messenger: registrar.messenger())
         DownloadManagerApiSetup.setUp(
             binaryMessenger: registrar.messenger(),
             api: downloader

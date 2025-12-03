@@ -182,6 +182,7 @@ class PlayerController(
             player.seekTo(it * 1000)
         }
 
+        player.playWhenReady = true
         player.prepare()
     }
 

@@ -10,27 +10,24 @@ import Flutter
 import Foundation
 
 class DownloadManager: NSObject, DownloadManagerApi {
-
+    public static let session = VidLoader()
+    
+    private let storageKey = "dev.khaled.kvideo.downloads.encrypted"
+    private let session = DownloadManager.session
     private let listener: DownloadEventListener
-
-    // MARK: - Internal Storage
-    private var session: AVAssetDownloadURLSession!
+    private lazy var observer = VidObserver(
+        type: ObserverType.all,
+        stateChanged: self.stateChanged
+    )
 
     init(messenger: FlutterBinaryMessenger) {
         self.listener = DownloadEventListener(binaryMessenger: messenger)
         super.init()
+        session.observe(with: observer)
+    }
 
-        let config = URLSessionConfiguration.background(
-            withIdentifier: "dev.khaled.kvideo"
-        )
-
-        self.session = AVAssetDownloadURLSession(
-            configuration: config,
-            assetDownloadDelegate: self,
-            delegateQueue: .main
-        )
-
-        restorePendingDownloads()
+    deinit {
+        session.remove(observer: observer)
     }
 
     // MARK: - Public API
@@ -39,24 +36,18 @@ class DownloadManager: NSObject, DownloadManagerApi {
     func download(media: Media) throws -> String? {
         guard let url = URL(string: media.url) else { return nil }
         let assetId = UUID().uuidString
-        let asset = AVURLAsset(
-            url: url,
-            options: ["AVURLAssetHTTPHeaderFieldsKey": media.headers ?? [:]]
+
+        session.download(
+            DownloadValues(
+                identifier: assetId,
+                url: url,
+                title: "",
+                artworkData: nil,
+                minRequiredBitrate: nil,
+                headers: media.headers ?? [:]
+            )
         )
 
-        // TODO: DRM Delegate
-
-        let task = session.makeAssetDownloadTask(
-            asset: asset,
-            assetTitle: assetId,
-            assetArtworkData: nil,
-            options: nil
-        )
-
-        guard let task else { return nil }
-
-        task.taskDescription = assetId
-        task.resume()
         return assetId
     }
 
@@ -65,110 +56,61 @@ class DownloadManager: NSObject, DownloadManagerApi {
         id: String,
         completion: @escaping (Result<Void, any Error>) -> Void
     ) {
-        let saved = loadCompletedDownloads().first(where: { $0.id == id })
-        if saved != nil {
-            deleteCompletedDownload(download: saved!)
+        session.cancel(identifier: id)
+        if let saved = loadCompletedDownloads().first(where: {
+            $0.identifier == id
+        }) {
+            deleteCompletedDownload(item: saved)
             listener.onRemoved(id: id) { _ in }
             return completion(.success(Void()))
-        }
-
-        getTasks {
-            let task = $0.first(where: { $0.taskDescription == id })
-            task?.cancel()
-            self.listener.onRemoved(id: id) { _ in }
-            completion(.success(Void()))
         }
     }
 
     func removeAll(completion: @escaping (Result<Void, any Error>) -> Void) {
-        getTasks { tasks in
-            tasks.forEach {
-                self.remove(id: $0.taskDescription!) { _ in }
-                self.listener.onRemoved(id: $0.taskDescription!) { _ in }
-            }
-        }
-
+        session.cancelActiveItems()
         removeCompletedDownloads()
         completion(.success(Void()))
-    }
-
-    /// Resume pending tasks after app launch
-    func restorePendingDownloads() {
-        session.getAllTasks { tasks in
-            tasks.forEach { task in
-                if task.state == .completed { return }
-                guard task as? AVAssetDownloadTask != nil else { return }
-                guard let assetId = task.taskDescription else { return }
-                task.resume()
-                print("Restored pending download for assetId: \(assetId)")
-            }
-        }
     }
 
     func getStatusFor(
         id: String,
         completion: @escaping (Result<DownloadData?, any Error>) -> Void
     ) {
-        let saved = loadCompletedDownloads().first(where: { $0.id == id })
-        if saved != nil { return completion(.success(saved!)) }
-
-        getTasks { tasks in
-            guard let task = tasks.first(where: { $0.taskDescription == id })
-            else { return completion(.success(nil)) }
-
-            // Extract progress as a percentage
-            let bytesReceived = task.countOfBytesReceived
-            let bytesExpected = task.countOfBytesExpectedToReceive
-            guard bytesExpected > 0 else { return completion(.success(nil)) }
-
-            // Calculate progress as a percentage
-            let progress = Int64(
-                (Double(bytesReceived) / Double(bytesExpected)) * 100
-            )
-
-            // Determine the status based on the task's state
-            var status: DownloadStatus
-            switch task.state {
-            case .running:
-                status = .downloading
-            case .suspended:
-                status = .waiting
-            case .canceling:
-                status = .waiting
-            case .completed:
-                status = .finished
-            @unknown default:
-                status = .waiting
-            }
-
-            if task.error != nil { status = .error }
-
-            // Create a DownloadData object
-            let downloadData = DownloadData(
-                id: task.taskDescription,
-                progress: progress,
-                status: status,
-                originUri: task.originalRequest?.url?.absoluteString,
-                localUri: task.response?.url?.absoluteString,
-                error: task.error?.localizedDescription
-            )
-
-            return completion(.success(downloadData))
+        if let saved = loadCompletedDownloads().first(where: {
+            $0.identifier == id
+        }) {
+            return completion(.success(saved.toDownloadData()))
         }
+
+        guard let item = session.itemInformation(for: id) else {
+            return completion(.success(nil))
+        }
+
+        let status = item.getStatus()
+        let downloadData = DownloadData(
+            id: item.identifier,
+            progress: Int64(item.progress * 100),
+            status: status.status,
+            originUri: item.mediaLink,
+            localUri: item.location?.absoluteString,
+            error: status.error
+        )
+
+        return completion(.success(downloadData))
     }
 
     func getAllDownloads(
         completion: @escaping (Result<[String], any Error>) -> Void
     ) {
         var downloadTasks: [String] = []
-        getTasks { tasks in
-            tasks.forEach { task in
-                downloadTasks.append(task.taskDescription!)
-            }
+        session.items().forEach {
+            downloadTasks.append($0.identifier)
         }
 
         downloadTasks.append(
-            contentsOf: loadCompletedDownloads().compactMap { return $0.id }
+            contentsOf: loadCompletedDownloads().compactMap {
+                return $0.identifier
+            }
         )
 
         completion(.success(downloadTasks))
@@ -176,138 +118,91 @@ class DownloadManager: NSObject, DownloadManagerApi {
 
     func setAndroidDataSourceHeaders(headers: [String: String]) throws {}
 
-    private func getTasks(completion: @escaping ([URLSessionTask]) -> Void) {
-        session.getAllTasks { tasks in
-            completion(tasks)
-        }
-    }
 }
 
 // MARK: - Event Listener
-extension DownloadManager: AVAssetDownloadDelegate {
+extension DownloadManager {
 
-    /// Progress Updates
-    func urlSession(
-        _ session: URLSession,
-        assetDownloadTask: AVAssetDownloadTask,
-        didLoad timeRange: CMTimeRange,
-        totalTimeRangesLoaded loadedTimeRanges: [NSValue],
-        timeRangeExpectedToLoad: CMTimeRange
-    ) {
+    func stateChanged(info: ItemInformation) {
+        switch info.state {
+        case .running(let progress),
+            .noConnection(let progress),
+            .paused(let progress):
+            self.listener.onProgress(
+                id: info.identifier,
+                progress: Int64(progress * 100)
+            ) {
+                _ in
+            }
 
-        guard let id = assetDownloadTask.taskDescription else { return }
+        case .completed:
+            saveCompletedDownload(info)
+            self.listener.onCompletion(
+                id: info.identifier,
+                location: info.location?.absoluteString ?? ""
+            ) {
+                _ in
+            }
 
-        let bytesReceived = assetDownloadTask.countOfBytesReceived
-        let bytesExpected = assetDownloadTask.countOfBytesExpectedToReceive
+        case .canceled:
+            self.listener.onRemoved(id: info.identifier) {
+                _ in
+            }
 
-        guard bytesExpected > 0 else { return }
+        case .failed(let error):
+            self.listener.onError(
+                id: info.identifier,
+                error: error.localizedDescription
+            ) {
+                _ in
+            }
 
-        // Calculate progress as a percentage
-        let progress = Int64(
-            (Double(bytesReceived) / Double(bytesExpected)) * 100
-        )
-
-        let clampedProgress = min(max(progress, 0), 100)
-        self.listener.onProgress(id: id, progress: clampedProgress) { _ in }
-
-    }
-
-    /// Completion
-    func urlSession(
-        _ session: URLSession,
-        assetDownloadTask: AVAssetDownloadTask,
-        didFinishDownloadingTo location: URL
-    ) {
-        guard let id = assetDownloadTask.taskDescription else { return }
-
-        let downloadData = DownloadData(
-            id: id,
-            progress: 100,
-            status: .finished,
-            originUri: assetDownloadTask.urlAsset.url.absoluteString,
-            localUri: location.absoluteString,
-            error: nil
-        )
-
-        saveCompletedDownload(downloadData)
-
-        self.listener.onCompletion(id: id, location: location.absoluteString) {
-            _ in
+        case .unknown, .prefetching, .waiting, .keyLoaded:
+            self.listener.onProgress(
+                id: info.identifier,
+                progress: Int64(info.progress * 100)
+            ) {
+                _ in
+            }
         }
-    }
-
-    /// Error Handling
-    func urlSession(
-        _ session: URLSession,
-        task: URLSessionTask,
-        didCompleteWithError error: Error?
-    ) {
-
-        guard let error, let id = task.taskDescription else { return }
-
-        if (error as NSError).code == NSURLErrorCancelled {
-            self.listener.onRemoved(id: id) { _ in }
-            return
-        }
-
-        self.listener.onError(id: id, error: error.localizedDescription) {
-            _ in
-        }
-    }
-
-    /// Called when background events finish
-    func urlSessionDidFinishEvents(forBackgroundURLSession session: URLSession)
-    {
-        //        // Hook for AppDelegate/SceneDelegate to notify the system the events are done.
-        //        NotificationCenter.default.post(
-        //            name: Notification.Name("HLSBackgroundEventsFinished"),
-        //            object: nil
-        //        )
     }
 }
 
 // MARK: - Store Completed Entries
 extension DownloadManager {
 
-    private func saveCompletedDownload(_ downloadData: DownloadData) {
-        var saved = loadCompletedDownloads().map {
-            DownloadDataCodable(from: $0)
-        }
-
-        if let index = saved.firstIndex(where: { $0.id == downloadData.id }) {
-            saved[index] = DownloadDataCodable(from: downloadData)
+    private func saveCompletedDownload(_ item: ItemInformation) {
+        var saved = loadCompletedDownloads()
+        if let index = saved.firstIndex(where: {
+            $0.identifier == item.identifier
+        }) {
+            saved[index] = item
         } else {
-            saved.append(DownloadDataCodable(from: downloadData))
+            saved.append(item)
         }
 
         if let encoded = try? JSONEncoder().encode(saved) {
-            UserDefaults.standard.set(
-                encoded,
-                forKey: "dev.khaled.kvideo.downloads"
-            )
+            UserDefaults.standard.set(encoded, forKey: storageKey)
         }
     }
 
-    func loadCompletedDownloads() -> [DownloadData] {
+    func loadCompletedDownloads() -> [ItemInformation] {
         guard
-            let data = UserDefaults.standard.data(
-                forKey: "dev.khaled.kvideo.downloads"
-            ),
+            let data = UserDefaults.standard.data(forKey: storageKey),
             let saved = try? JSONDecoder().decode(
-                [DownloadDataCodable].self,
+                [ItemInformation].self,
                 from: data
             )
         else { return [] }
 
-        return saved.map { $0.toDownloadData() }
+        return saved
     }
 
     func removeCompletedDownloads() {
         loadCompletedDownloads().forEach { download in
-            if let path = download.localUri, let url = URL(string: path) {
+            if let path = download.location {
                 do {
-                    try FileManager.default.removeItem(at: url)
-                    self.listener.onRemoved(id: download.id!) { _ in }
+                    try FileManager.default.removeItem(at: path)
                     print("Deleted file at \(path)")
                 } catch {
                     print("Failed to delete file at \(path)")
@@ -315,71 +210,64 @@ extension DownloadManager {
             }
         }
 
-        UserDefaults.standard.removeObject(
-            forKey: "dev.khaled.kvideo.downloads"
-        )
+        UserDefaults.standard.removeObject(forKey: storageKey)
     }
 
-    func deleteCompletedDownload(download: DownloadData) {
+    func deleteCompletedDownload(item: ItemInformation) {
         var completedDownloads = self.loadCompletedDownloads()
-        if let index = completedDownloads.firstIndex(where: {
-            $0.id == download.id
-        }) {
+        if let index = completedDownloads.firstIndex(of: item) {
             let download = completedDownloads[index]
-
-            if let path = download.localUri, let url = URL(string: path) {
+            if let path = download.location {
                 do {
-                    try FileManager.default.removeItem(at: url)
+                    try FileManager.default.removeItem(at: path)
+                    self.listener.onRemoved(id: download.identifier) { _ in }
                     print("Deleted file at \(path)")
                 } catch {
-                    print(
-                        "Failed to delete file at \(path)"
-                    )
+                    print("Failed to delete file at \(path)")
                 }
             }
-
             // Remove from saved completed downloads
             completedDownloads.remove(at: index)
 
             // Save updated completed downloads
-            if let encoded = try? JSONEncoder().encode(
-                completedDownloads.map { DownloadDataCodable(from: $0) }
-            ) {
-                UserDefaults.standard.set(
-                    encoded,
-                    forKey: "dev.khaled.kvideo.downloads"
-                )
+            if let encoded = try? JSONEncoder().encode(completedDownloads) {
+                UserDefaults.standard.set(encoded, forKey: storageKey)
             }
         }
     }
 }
 
-struct DownloadDataCodable: Codable {
-    let id: String?
-    let progress: Int64
-    let status: Int
-    let originUri: String?
-    let localUri: String?
-    let error: String?
-
-    init(from downloadData: DownloadData) {
-        self.id = downloadData.id
-        self.progress = downloadData.progress ?? 0
-        self.status =
-            downloadData.status?.rawValue ?? DownloadStatus.waiting.rawValue
-        self.originUri = downloadData.originUri
-        self.localUri = downloadData.localUri
-        self.error = downloadData.error
+extension ItemInformation {
+    func toDownloadData() -> DownloadData {
+        let status = getStatus()
+        return DownloadData(
+            id: self.identifier,
+            progress: Int64(self.progress * 100),
+            status: status.status,
+            originUri: self.mediaLink,
+            localUri: self.location?.absoluteString,
+            error: status.error
+        )
     }
 
-    func toDownloadData() -> DownloadData {
-        return DownloadData(
-            id: id,
-            progress: progress,
-            status: DownloadStatus(rawValue: status),
-            originUri: originUri,
-            localUri: localUri,
-            error: error
-        )
+    func getStatus() -> (status: DownloadStatus, error: String?) {
+        switch self.state {
+        case .running(_):
+            return (status: .downloading, error: nil)
+
+        case .completed:
+            return (status: .finished, error: nil)
+
+        case .failed(let err):
+            return (status: .error, error: err.localizedDescription)
+
+        case .canceled:
+            return (status: .error, error: "ERR: Canceled")
+
+        case .waiting, .prefetching:
+            return (status: .waiting, error: nil)
+        default:
+            return (status: .waiting, error: nil)
+        }
     }
 }
