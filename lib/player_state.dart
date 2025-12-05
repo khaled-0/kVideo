@@ -22,6 +22,8 @@ class PlayerState implements PlayerEventListener {
   final ValueNotifier<double> speed = ValueNotifier(1.0);
   final ValueNotifier<List<TrackData>> tracks = ValueNotifier([]);
 
+  final ValueNotifier<bool> pipMode = ValueNotifier(false);
+
   @override
   void onBufferUpdate(int second) {
     buffer.value = Duration(seconds: second);
@@ -73,5 +75,10 @@ class PlayerState implements PlayerEventListener {
     _controller.textureParams.value = _controller.textureParams.value.copyWith(
       size: Size(width.toDouble(), height.toDouble()),
     );
+  }
+
+  @override
+  void onPiPModeChange(bool inPip) {
+    pipMode.value = inPip;
   }
 }

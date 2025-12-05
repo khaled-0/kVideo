@@ -71,7 +71,6 @@ class PiPActivity : ComponentActivity() {
 
 //            params.setActions(listOf(action))
             enterPictureInPictureMode(params.build())
-
         }
     }
 
@@ -79,6 +78,7 @@ class PiPActivity : ComponentActivity() {
     override fun onPictureInPictureModeChanged(
         isInPictureInPictureMode: Boolean, newConfig: Configuration
     ) {
+        if (isInPictureInPictureMode) PiPManager.notifyPipEnter()
         if (!isInPictureInPictureMode) finishAndRemoveTask()
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
     }
@@ -95,17 +95,21 @@ class PiPActivity : ComponentActivity() {
 }
 
 object PiPManager {
-    private val listeners = mutableListOf<() -> Unit>()
+    private val listeners = mutableListOf<(inPip: Boolean) -> Unit>()
 
-    fun addListener(listener: () -> Unit) {
+    fun addListener(listener: (inPip: Boolean) -> Unit) {
         listeners.add(listener)
     }
 
-    fun removeListener(listener: () -> Unit) {
+    fun removeListener(listener: (inPip: Boolean) -> Unit) {
         listeners.remove(listener)
     }
 
+    fun notifyPipEnter() {
+        listeners.forEach { it.invoke(true) }
+    }
+
     fun notifyPipExited() {
-        listeners.forEach { it.invoke() }
+        listeners.forEach { it.invoke(false) }
     }
 }

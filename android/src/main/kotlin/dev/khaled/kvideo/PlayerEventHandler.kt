@@ -16,7 +16,7 @@ import io.flutter.plugin.common.BinaryMessenger
 class PlayerEventHandler(
     binaryMessenger: BinaryMessenger, suffix: String, val playerController: PlayerController
 ) : Player.Listener, AdEvent.AdEventListener {
-    private val listener: PlayerEventListener = PlayerEventListener(binaryMessenger, suffix)
+    val listener: PlayerEventListener = PlayerEventListener(binaryMessenger, suffix)
     private val player = playerController.player
 
     init {

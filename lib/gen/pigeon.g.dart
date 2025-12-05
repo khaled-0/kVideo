@@ -1157,6 +1157,8 @@ abstract class PlayerEventListener {
 
   void onPlaybackSpeedUpdate(double speed);
 
+  void onPiPModeChange(bool inPip);
+
   static void setUp(PlayerEventListener? api, {BinaryMessenger? binaryMessenger, String messageChannelSuffix = '',}) {
     messageChannelSuffix = messageChannelSuffix.isNotEmpty ? '.$messageChannelSuffix' : '';
     {
@@ -1378,6 +1380,31 @@ abstract class PlayerEventListener {
               'Argument for dev.flutter.pigeon.kvideo.PlayerEventListener.onPlaybackSpeedUpdate was null, expected non-null double.');
           try {
             api.onPlaybackSpeedUpdate(arg_speed!);
+            return wrapResponse(empty: true);
+          } on PlatformException catch (e) {
+            return wrapResponse(error: e);
+          }          catch (e) {
+            return wrapResponse(error: PlatformException(code: 'error', message: e.toString()));
+          }
+        });
+      }
+    }
+    {
+      final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
+          'dev.flutter.pigeon.kvideo.PlayerEventListener.onPiPModeChange$messageChannelSuffix', pigeonChannelCodec,
+          binaryMessenger: binaryMessenger);
+      if (api == null) {
+        pigeonVar_channel.setMessageHandler(null);
+      } else {
+        pigeonVar_channel.setMessageHandler((Object? message) async {
+          assert(message != null,
+          'Argument for dev.flutter.pigeon.kvideo.PlayerEventListener.onPiPModeChange was null.');
+          final List<Object?> args = (message as List<Object?>?)!;
+          final bool? arg_inPip = (args[0] as bool?);
+          assert(arg_inPip != null,
+              'Argument for dev.flutter.pigeon.kvideo.PlayerEventListener.onPiPModeChange was null, expected non-null bool.');
+          try {
+            api.onPiPModeChange(arg_inPip!);
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);

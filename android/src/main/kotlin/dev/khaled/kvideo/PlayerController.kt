@@ -195,12 +195,15 @@ class PlayerController(
     override fun setPlaybackSpeed(speed: Double) = player.setPlaybackSpeed(speed.toFloat())
 
 
-    private val pipListener = {
-        if (this::surfaceProducer.isInitialized) {
-            player.setVideoSurface(surfaceProducer.surface)
-        } else {
-            playerView.player = player
-            player.setVideoSurfaceView(playerView.videoSurfaceView as SurfaceView)
+    private val pipListener = { inPip: Boolean ->
+        eventHandler.listener.onPiPModeChange(inPip) {}
+        if (!inPip) {
+            if (this::surfaceProducer.isInitialized) {
+                player.setVideoSurface(surfaceProducer.surface)
+            } else {
+                playerView.player = player
+                player.setVideoSurfaceView(playerView.videoSurfaceView as SurfaceView)
+            }
         }
     }
 

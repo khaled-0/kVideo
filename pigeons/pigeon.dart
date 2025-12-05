@@ -97,6 +97,8 @@ abstract class PlayerEventListener {
   void onTracksLoaded(List<TrackData> tracks);
 
   void onPlaybackSpeedUpdate(double speed);
+
+  void onPiPModeChange(bool inPip);
 }
 
 class Media {
@@ -214,6 +216,7 @@ abstract class DownloadManagerApi {
 @FlutterApi()
 abstract class DownloadEventListener {
   // TODO: Return list of Video & Audio to download from available tracks
+  // Currently autoselecting the best one
   // List<TrackData> requestTrackSelection(List<TrackData> tracks);
 
   // Progress between 0 to 100

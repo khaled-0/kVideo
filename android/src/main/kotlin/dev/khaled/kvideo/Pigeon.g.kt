@@ -1102,6 +1102,23 @@ class PlayerEventListener(private val binaryMessenger: BinaryMessenger, private 
       } 
     }
   }
+  fun onPiPModeChange(inPipArg: Boolean, callback: (Result<Unit>) -> Unit)
+{
+    val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
+    val channelName = "dev.flutter.pigeon.kvideo.PlayerEventListener.onPiPModeChange$separatedMessageChannelSuffix"
+    val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
+    channel.send(listOf(inPipArg)) {
+      if (it is List<*>) {
+        if (it.size > 1) {
+          callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))
+        } else {
+          callback(Result.success(Unit))
+        }
+      } else {
+        callback(Result.failure(PigeonPigeonUtils.createConnectionError(channelName)))
+      } 
+    }
+  }
 }
 /** Generated interface from Pigeon that represents a handler of messages from Flutter. */
 interface DownloadManagerApi {

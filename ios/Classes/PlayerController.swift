@@ -87,7 +87,7 @@ public class PlayerController: NSObject, FlutterPlatformView,
         )
 
         self.drmLoaderDelegate = nil
-        
+
         if url.scheme == "file" {
             if let file = DownloadManager.session.asset(location: url) {
                 print("Playing file \(url.absoluteString)")
@@ -332,5 +332,20 @@ extension AVURLAsset {
 
             completion(trackDataList)
         }
+    }
+}
+
+// MARK: - PiP Event Listener
+extension PlayerController {
+    public func pictureInPictureControllerWillStartPictureInPicture(
+        _ pictureInPictureController: AVPictureInPictureController
+    ) {
+        self.eventHandler.listener.onPiPModeChange(inPip: true) { _ in }
+    }
+
+    public func pictureInPictureControllerDidStopPictureInPicture(
+        _ pictureInPictureController: AVPictureInPictureController
+    ) {
+        self.eventHandler.listener.onPiPModeChange(inPip: false) { _ in }
     }
 }

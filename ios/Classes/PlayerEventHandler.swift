@@ -11,7 +11,7 @@ import Foundation
 import UIKit
 
 class PlayerEventHandler: NSObject {
-    private let listener: PlayerEventListener
+    public let listener: PlayerEventListener
     private var controller: PlayerController
     
     private var timeObserver: Any?
