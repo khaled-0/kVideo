@@ -64,6 +64,7 @@ class PlayerController {
   }
 
   Future<void> play(Media? media) {
+    state.tracks.value = [];
     if (media == null) return _api.stop();
     return _api.play(media);
   }
@@ -102,6 +103,10 @@ class PlayerController {
 
   Future<void> setTrackPreference(TrackData? track) {
     return _api.setTrackPreference(track);
+  }
+
+  Future<void> setPlaybackSpeed(double speed) {
+    return _api.setPlaybackSpeed(speed);
   }
 
   Future<void> dispose() {
