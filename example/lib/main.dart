@@ -40,6 +40,7 @@ void main() async {
 
   final id = await downloader.download(
     Media(url: urls[1], headers: {"hi": "bro"}),
+    null,
   );
   print(id);
 

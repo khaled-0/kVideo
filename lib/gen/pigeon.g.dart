@@ -1455,14 +1455,14 @@ class DownloadManagerApi {
   }
 
   /// Returns a download id if task is created
-  Future<String?> download(Media media) async {
+  Future<String?> download(Media media, String? customId) async {
     final String pigeonVar_channelName = 'dev.flutter.pigeon.kvideo.DownloadManagerApi.download$pigeonVar_messageChannelSuffix';
     final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[media]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[media, customId]);
     final List<Object?>? pigeonVar_replyList =
         await pigeonVar_sendFuture as List<Object?>?;
     if (pigeonVar_replyList == null) {

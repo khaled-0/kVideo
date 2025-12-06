@@ -1106,7 +1106,7 @@ protocol DownloadManagerApi {
   /// ExoPlayer can't use per media headers
   func setAndroidDataSourceHeaders(headers: [String: String]) throws
   /// Returns a download id if task is created
-  func download(media: Media) throws -> String?
+  func download(media: Media, customId: String?) throws -> String?
   func remove(id: String, completion: @escaping (Result<Void, Error>) -> Void)
   func removeAll(completion: @escaping (Result<Void, Error>) -> Void)
   /// Returns null if download not found
@@ -1143,8 +1143,9 @@ class DownloadManagerApiSetup {
       downloadChannel.setMessageHandler { message, reply in
         let args = message as! [Any?]
         let mediaArg = args[0] as! Media
+        let customIdArg: String? = nilOrValue(args[1])
         do {
-          let result = try api.download(media: mediaArg)
+          let result = try api.download(media: mediaArg, customId: customIdArg)
           reply(wrapResult(result))
         } catch {
           reply(wrapError(error))

@@ -1125,7 +1125,7 @@ interface DownloadManagerApi {
   /** ExoPlayer can't use per media headers */
   fun setAndroidDataSourceHeaders(headers: Map<String, String>)
   /** Returns a download id if task is created */
-  fun download(media: Media): String?
+  fun download(media: Media, customId: String?): String?
   fun remove(id: String, callback: (Result<Unit>) -> Unit)
   fun removeAll(callback: (Result<Unit>) -> Unit)
   /** Returns null if download not found */
@@ -1166,8 +1166,9 @@ interface DownloadManagerApi {
           channel.setMessageHandler { message, reply ->
             val args = message as List<Any?>
             val mediaArg = args[0] as Media
+            val customIdArg = args[1] as String?
             val wrapped: List<Any?> = try {
-              listOf(api.download(mediaArg))
+              listOf(api.download(mediaArg, customIdArg))
             } catch (exception: Throwable) {
               PigeonPigeonUtils.wrapError(exception)
             }

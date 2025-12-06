@@ -196,7 +196,7 @@ abstract class DownloadManagerApi {
   void setAndroidDataSourceHeaders(Map<String, String> headers);
 
   /// Returns a download id if task is created
-  String? download(Media media);
+  String? download(Media media, String? customId);
 
   @async
   void remove(String id);

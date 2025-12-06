@@ -104,9 +104,10 @@ class KDownloadManager(
         DownloadManagerUtil.dataSourceHeaders.putAll(headers)
     }
 
-    override fun download(media: Media): String {
-        val id = UUID.randomUUID().toString()
-        val request = DownloadRequest.Builder(id, media.url.toUri()).build()
+    override fun download(media: Media, customId: String?): String {
+        val id =  customId ?: UUID.randomUUID().toString()
+        val request = DownloadRequest.Builder(id, media.url.toUri())
+            .build()
 
         // TODO DRM
         DownloadService.sendAddDownload(
