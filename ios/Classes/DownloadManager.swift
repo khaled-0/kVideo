@@ -33,9 +33,9 @@ class DownloadManager: NSObject, DownloadManagerApi {
     // MARK: - Public API
 
     /// Start downloading a media
-    func download(media: Media) throws -> String? {
+    func download(media: Media, customId: String?) throws -> String? {
         guard let url = URL(string: media.url) else { return nil }
-        let assetId = UUID().uuidString
+        let assetId = customId ?? UUID().uuidString
 
         session.download(
             DownloadValues(
