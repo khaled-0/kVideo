@@ -13,7 +13,7 @@ import UIKit
 class PlayerEventHandler: NSObject {
     public let listener: PlayerEventListener
     private var controller: PlayerController
-    
+
     private var timeObserver: Any?
     private var statusObserver: NSKeyValueObservation?
     private var observerAdded = false
@@ -79,7 +79,6 @@ class PlayerEventHandler: NSObject {
             self.statusObserver = nil
         }
 
-        
         guard observerAdded == true else { return }
 
         player.removeObserver(self, forKeyPath: "timeControlStatus")
@@ -205,7 +204,7 @@ extension PlayerEventHandler {
         // Observe playback rate
         statusObserver = player.observe(\.timeControlStatus, options: [.new]) {
             [weak self] player, _ in
-            guard player.currentItem != nil else {return}
+            guard player.currentItem != nil else { return }
             self?.handleStatusUpdate(item: player.currentItem!)
         }
 
@@ -217,8 +216,14 @@ extension PlayerEventHandler {
             object: controller.player.currentItem
         )
 
-    }
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(contentDidFinishPlaying(_:)),
+            name: .AVPlayerItemDidPlayToEndTime,
+            object: controller.player.currentItem
+        )
 
+    }
 
     // Handle Item Duration Update
     @objc func handleItemDurationUpdate(notification: Notification) {
@@ -228,6 +233,15 @@ extension PlayerEventHandler {
             self.listener.onDurationUpdate(second: Int64(duration)) {
                 _ in
             }
+        }
+    }
+
+    // Content Playback Finished
+    @objc func contentDidFinishPlaying(_ notification: Notification) {
+        // Make sure we don't call contentComplete as a result of an ad completing.
+        if notification.object as? AVPlayerItem == controller.player.currentItem
+        {
+            controller.adsLoader.contentComplete()
         }
     }
 }

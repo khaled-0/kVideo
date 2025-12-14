@@ -29,7 +29,11 @@ class EventListener implements DownloadEventListener {
 final urls = [
   "https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8",
   "https://stream.mux.com/3x5wDUHxkd8NkEfspLUK3OpSQEJe3pom.m3u8?redundant_streams=true",
+  "https://storage.googleapis.com/gvabox/media/samples/stock.mp4",
 ];
+
+final ima =
+    "https://pubads.g.doubleclick.net/gampad/ads?iu=/21775744923/external/single_preroll_skippable&sz=640x480&ciu_szs=300x250%2C728x90&gdfp_req=1&output=vast&unviewed_position_start=1&env=vp&correlator=";
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -38,22 +42,24 @@ void main() async {
 
   downloader.removeAll();
 
-  final id = await downloader.download(
-    Media(url: urls[1], headers: {"hi": "bro"}),
-    null,
-  );
-  print(id);
+  // final id = await downloader.download(
+  //   Media(url: urls[1], headers: {"hi": "bro"}),
+  //   null,
+  // );
+  // print(id);
 
-  controller.initialize().then((_) {
-    // controller.play(
-    //   Media(
-    //     url: urls[2],
-    //     subtitles: [
-    //       "https://gist.githubusercontent.com/matibzurovski/d690d5c14acbaa399e7f0829f9d6888e/raw/63578ca30e7430be1fa4942d4d8dd599f78151c7/example.srt",
-    //     ],
-    //   ),
-    // );
-  });
+  controller
+      .initialize(configuration: PlayerConfiguration(initializeIMA: true))
+      .then((_) {
+        // controller.play(
+        //   Media(
+        //     url: urls[2],
+        //     subtitles: [
+        //       "https://gist.githubusercontent.com/matibzurovski/d690d5c14acbaa399e7f0829f9d6888e/raw/63578ca30e7430be1fa4942d4d8dd599f78151c7/example.srt",
+        //     ],
+        //   ),
+        // );
+      });
 
   // runApp(Center(child: PlayerView(controller)));
   runApp(MaterialApp(home: PlayerScreen(child: PlayerView(controller))));
@@ -173,6 +179,17 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   controller.play(Media(url: urls[1]));
                 },
                 child: Text("MUX"),
+              ),
+            ),
+
+            Positioned(
+              bottom: 8,
+              left: 120,
+              child: ElevatedButton(
+                onPressed: () {
+                  controller.play(Media(url: urls[2], imaTagUrl: ima));
+                },
+                child: Text("IMA"),
               ),
             ),
 

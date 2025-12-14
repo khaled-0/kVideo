@@ -9,10 +9,12 @@ import AVFoundation
 import AVKit
 import Flutter
 import Foundation
+import GoogleInteractiveMediaAds
 import UIKit
 
 public class PlayerController: NSObject, FlutterPlatformView,
     PlayerViewDelegate, AVPictureInPictureControllerDelegate,
+    IMAAdsLoaderDelegate, IMAAdsManagerDelegate,
     PlayerControllerApi
 {
 
@@ -33,6 +35,15 @@ public class PlayerController: NSObject, FlutterPlatformView,
     public func view() -> UIView { return playerView }
 
     private var pipController: AVPictureInPictureController?
+
+    // ---------------------------------------------------------------------
+    // MARK: - IMA
+    // ---------------------------------------------------------------------
+    let adsLoader = IMAAdsLoader()
+    private var adsManager: IMAAdsManager?
+    private var imaAdTagUrl: String?
+    private var adDisplayContainer: IMAAdDisplayContainer?
+    private var contentPlayhead: IMAAVPlayerContentPlayhead?
 
     // ---------------------------------------------------------------------
     // MARK: - Init
@@ -73,6 +84,15 @@ public class PlayerController: NSObject, FlutterPlatformView,
             playerLayer: playerView.playerLayer
         )
         pipController?.delegate = self
+
+        if configuration?.initializeIMA != false {
+            adsLoader.delegate = self
+            adDisplayContainer = IMAAdDisplayContainer(
+                adContainer: playerView.adContainerView,
+                viewController: getRootViewController(),
+                companionSlots: nil
+            )
+        }
     }
 
     func play(media: Media) throws {
@@ -109,7 +129,11 @@ public class PlayerController: NSObject, FlutterPlatformView,
             }
         }
 
-        // TODO: IMA Ads equivalent (Google IMA for iOS)
+        self.imaAdTagUrl = nil
+        if media.imaTagUrl != nil {
+            self.imaAdTagUrl = media.imaTagUrl
+        }
+
         asset.resourceLoader.preloadsEligibleContentKeys = true
         self.playerItem = AVPlayerItem(asset: asset)
         self.tracks = []
@@ -128,6 +152,8 @@ public class PlayerController: NSObject, FlutterPlatformView,
         asset.fetchAllTrackData { tracks in
             self.tracks = tracks
         }
+
+        if self.imaAdTagUrl != nil { requestAds() }
     }
 
     func stop() throws { player.pause() }
@@ -273,6 +299,14 @@ public class PlayerController: NSObject, FlutterPlatformView,
         player.pause()
         player.replaceCurrentItem(with: nil)
         eventHandler.removeObservers()
+
+        // Clean up IMA SDK
+        adsManager?.destroy()
+        adsManager = nil
+
+        adsLoader.delegate = nil
+        self.adDisplayContainer = nil
+        self.playerView.adContainerView.removeFromSuperview()
     }
 
     func initAndroidTextureView() throws -> VideoTextureData {
@@ -280,11 +314,11 @@ public class PlayerController: NSObject, FlutterPlatformView,
     }
 
     func isPlayingIMA() throws -> Bool {
-        return false  // TODO:
+        return adsManager?.adPlaybackInfo.isPlaying == true
     }
 
     func playerViewDidMoveToWindow() {
-
+        requestAds()
     }
 
 }
@@ -331,6 +365,174 @@ extension AVURLAsset {
             }
 
             completion(trackDataList)
+        }
+    }
+}
+
+// MARK: - IMA
+
+extension PlayerController {
+    private func requestAds() {
+        guard imaAdTagUrl != nil else { return }
+        guard adsLoader.delegate != nil else { return }
+
+        adsManager?.destroy()
+        adsLoader.contentComplete()
+        adsManager = nil
+
+        self.contentPlayhead = IMAAVPlayerContentPlayhead(avPlayer: player)
+
+        // Create an ad request with our ad tag, display container, and optional user context.
+        let request = IMAAdsRequest(
+            adTagUrl: imaAdTagUrl!,
+            adDisplayContainer: adDisplayContainer!,
+            contentPlayhead: contentPlayhead,
+            userContext: self.playerItem,
+        )
+
+        self.adsLoader.requestAds(with: request)
+        self.imaAdTagUrl = nil
+    }
+
+    public func adsLoader(
+        _ loader: IMAAdsLoader,
+        adsLoadedWith adsLoadedData: IMAAdsLoadedData
+    ) {
+        // Grab the instance of the IMAAdsManager and set ourselves as the delegate.
+        self.adsManager = adsLoadedData.adsManager
+        adsManager?.delegate = self
+
+        // Create ads rendering settings and tell the SDK to use the in-app browser.
+        let adsRenderingSettings = IMAAdsRenderingSettings()
+
+        // Initialize the ads manager.
+        adsManager?.initialize(with: adsRenderingSettings)
+    }
+
+    func getRootViewController() -> UIViewController? {
+        return UIApplication.shared
+            .connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap { $0.windows }
+            .first { $0.isKeyWindow }?
+            .rootViewController
+    }
+}
+
+// MARK: - IMAAdsManagerDelegate
+extension PlayerController {
+    public func adsManager(
+        _ adsManager: IMAAdsManager,
+        didReceive event: IMAAdEvent
+    ) {
+        if player.currentItem == nil { return }
+
+        print("AdsManager Event:", IMAAdEventTypeToString(event.type))
+
+        switch event.type {
+        case .LOADED:
+            adsManager.start()
+
+        case .STARTED:
+            player.pause()
+            eventHandler.onIMAEvent(isAdPlaying: true)
+
+        case .SKIPPED, .COMPLETE, .ALL_ADS_COMPLETED:
+            eventHandler.onIMAEvent(isAdPlaying: false)
+
+        case .PAUSE, .RESUME:
+            player.pause()
+
+        default:
+            break
+        }
+    }
+
+    public func adsManager(
+        _ adsManager: IMAAdsManager,
+        didReceive error: IMAAdError
+    ) {
+        print("AdsManager error:", error.message ?? error)
+    }
+
+    public func adsLoader(
+        _ loader: IMAAdsLoader,
+        failedWith adErrorData: IMAAdLoadingErrorData
+    ) {
+        if let message = adErrorData.adError.message {
+            print("Error loading ads: \(message)")
+        }
+        player.play()
+    }
+
+    public func adsManagerDidRequestContentPause(_ adsManager: IMAAdsManager) {
+        if player.currentItem == nil { return }
+        eventHandler.onIMAEvent(isAdPlaying: true)
+        player.pause()
+    }
+
+    public func adsManagerDidRequestContentResume(_ adsManager: IMAAdsManager) {
+        if player.currentItem == nil { return }
+        eventHandler.onIMAEvent(isAdPlaying: false)
+        player.play()
+    }
+
+    func IMAAdEventTypeToString(_ type: IMAAdEventType) -> String {
+        switch type {
+        case .AD_BREAK_READY:
+            return "kIMAAdEvent_AD_BREAK_READY"
+        case .AD_BREAK_FETCH_ERROR:
+            return "kIMAAdEvent_AD_BREAK_FETCH_ERROR"
+        case .AD_BREAK_ENDED:
+            return "kIMAAdEvent_AD_BREAK_ENDED"
+        case .AD_BREAK_STARTED:
+            return "kIMAAdEvent_AD_BREAK_STARTED"
+        case .AD_PERIOD_ENDED:
+            return "kIMAAdEvent_AD_PERIOD_ENDED"
+        case .AD_PERIOD_STARTED:
+            return "kIMAAdEvent_AD_PERIOD_STARTED"
+        case .ALL_ADS_COMPLETED:
+            return "kIMAAdEvent_ALL_ADS_COMPLETED"
+        case .CLICKED:
+            return "kIMAAdEvent_CLICKED"
+        case .COMPLETE:
+            return "kIMAAdEvent_COMPLETE"
+        case .CUEPOINTS_CHANGED:
+            return "kIMAAdEvent_CUEPOINTS_CHANGED"
+        case .ICON_FALLBACK_IMAGE_CLOSED:
+            return "kIMAAdEvent_ICON_FALLBACK_IMAGE_CLOSED"
+        case .ICON_TAPPED:
+            return "kIMAAdEvent_ICON_TAPPED"
+        case .FIRST_QUARTILE:
+            return "kIMAAdEvent_FIRST_QUARTILE"
+        case .LOADED:
+            return "kIMAAdEvent_LOADED"
+        case .LOG:
+            return "kIMAAdEvent_LOG"
+        case .MIDPOINT:
+            return "kIMAAdEvent_MIDPOINT"
+        case .PAUSE:
+            return "kIMAAdEvent_PAUSE"
+        case .RESUME:
+            return "kIMAAdEvent_RESUME"
+        case .SKIPPED:
+            return "kIMAAdEvent_SKIPPED"
+        case .STARTED:
+            return "kIMAAdEvent_STARTED"
+        case .STREAM_LOADED:
+            return "kIMAAdEvent_STREAM_LOADED"
+        case .STREAM_STARTED:
+            return "kIMAAdEvent_STREAM_STARTED"
+        case .TAPPED:
+            return "kIMAAdEvent_TAPPED"
+        case .THIRD_QUARTILE:
+            return "kIMAAdEvent_THIRD_QUARTILE"
+        case .SHOW_AD_UI:
+            return "kIMAAdEvent_SHOW_AD_UI"
+        case .HIDE_AD_UI:
+            return "kIMAAdEvent_HIDE_AD_UI"
+        @unknown default:
+            return "Unknown (\(type.rawValue))"
         }
     }
 }

@@ -109,18 +109,15 @@ class PlayerView: UIView {
     // MARK: - Init
     override init(frame: CGRect) {
         super.init(frame: frame)
-        setupAdContainer()
+        adContainerView.frame = bounds
+        adContainerView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        addSubview(adContainerView)
     }
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 
-    private func setupAdContainer() {
-        adContainerView.frame = bounds
-        adContainerView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        addSubview(adContainerView)
-    }
 
     // MARK: - Layer
     override class var layerClass: AnyClass { return AVPlayerLayer.self }
