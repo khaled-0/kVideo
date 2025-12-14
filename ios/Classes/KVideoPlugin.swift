@@ -118,11 +118,12 @@ class PlayerView: UIView {
         fatalError("init(coder:) has not been implemented")
     }
 
-
     // MARK: - Layer
     override class var layerClass: AnyClass { return AVPlayerLayer.self }
 
     // MARK: - Lifecycle
+    // IMA Requires View to be attached before requesting Ads.
+    // So we fire a callback in case view is initialized after controller
     override func didMoveToWindow() {
         super.didMoveToWindow()
         if window != nil { delegate?.playerViewDidMoveToWindow() }

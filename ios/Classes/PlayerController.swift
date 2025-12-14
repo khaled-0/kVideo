@@ -39,11 +39,16 @@ public class PlayerController: NSObject, FlutterPlatformView,
     // ---------------------------------------------------------------------
     // MARK: - IMA
     // ---------------------------------------------------------------------
-    let adsLoader = IMAAdsLoader()
+    let adsLoader = {
+        let settings = IMASettings()
+        settings.enableBackgroundPlayback = true
+        return IMAAdsLoader(settings: settings)
+    }()
     private var adsManager: IMAAdsManager?
     private var imaAdTagUrl: String?
     private var adDisplayContainer: IMAAdDisplayContainer?
-    private var contentPlayhead: IMAAVPlayerContentPlayhead?
+    private var imaPiPProxy: IMAPictureInPictureProxy?
+    private lazy var imaAVPlayer = IMAAVPlayerVideoDisplay(avPlayer: player)
 
     // ---------------------------------------------------------------------
     // MARK: - Init
@@ -87,6 +92,10 @@ public class PlayerController: NSObject, FlutterPlatformView,
 
         if configuration?.initializeIMA != false {
             adsLoader.delegate = self
+            imaPiPProxy = IMAPictureInPictureProxy(
+                avPictureInPictureControllerDelegate: self
+            )
+            pipController?.delegate = imaPiPProxy
             adDisplayContainer = IMAAdDisplayContainer(
                 adContainer: playerView.adContainerView,
                 viewController: getRootViewController(),
@@ -380,14 +389,12 @@ extension PlayerController {
         adsLoader.contentComplete()
         adsManager = nil
 
-        self.contentPlayhead = IMAAVPlayerContentPlayhead(avPlayer: player)
-
-        // Create an ad request with our ad tag, display container, and optional user context.
         let request = IMAAdsRequest(
             adTagUrl: imaAdTagUrl!,
             adDisplayContainer: adDisplayContainer!,
-            contentPlayhead: contentPlayhead,
-            userContext: self.playerItem,
+            avPlayerVideoDisplay: imaAVPlayer,
+            pictureInPictureProxy: imaPiPProxy!,
+            userContext: self.playerItem
         )
 
         self.adsLoader.requestAds(with: request)
@@ -404,6 +411,7 @@ extension PlayerController {
 
         // Create ads rendering settings and tell the SDK to use the in-app browser.
         let adsRenderingSettings = IMAAdsRenderingSettings()
+        adsRenderingSettings.enablePreloading = true
 
         // Initialize the ads manager.
         adsManager?.initialize(with: adsRenderingSettings)
@@ -431,17 +439,15 @@ extension PlayerController {
 
         switch event.type {
         case .LOADED:
-            adsManager.start()
+            if pipController?.isPictureInPictureActive != true {
+                adsManager.start()
+            }
 
         case .STARTED:
-            player.pause()
             eventHandler.onIMAEvent(isAdPlaying: true)
 
         case .SKIPPED, .COMPLETE, .ALL_ADS_COMPLETED:
             eventHandler.onIMAEvent(isAdPlaying: false)
-
-        case .PAUSE, .RESUME:
-            player.pause()
 
         default:
             break
