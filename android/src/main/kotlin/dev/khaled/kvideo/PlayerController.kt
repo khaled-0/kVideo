@@ -340,7 +340,7 @@ class PlayerController(
             adsLoader.release()
         }
         playerView.player = null
-        player.release()
+        if (this::player.isInitialized) player.release()
         if (this::surfaceProducer.isInitialized) surfaceProducer.surface.release()
         PiPManager.removeListener(pipListener)
     }
