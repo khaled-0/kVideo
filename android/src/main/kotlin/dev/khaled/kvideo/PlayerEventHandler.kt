@@ -9,6 +9,7 @@ import androidx.media3.common.Timeline
 import androidx.media3.common.VideoSize
 import androidx.media3.common.util.UnstableApi
 import com.google.ads.interactivemedia.v3.api.AdEvent
+import io.flutter.Log
 import io.flutter.plugin.common.BinaryMessenger
 
 
@@ -89,7 +90,10 @@ class PlayerEventHandler(
 
     override fun onVideoSizeChanged(videoSize: VideoSize) {
         super.onVideoSizeChanged(videoSize)
-        listener.onVideoSizeUpdate(videoSize.width.toLong(), videoSize.height.toLong()) {}
+        listener.onVideoSizeUpdate(
+            (videoSize.width * videoSize.pixelWidthHeightRatio).toLong(),
+            videoSize.height.toLong()
+        ) {}
     }
 
 
