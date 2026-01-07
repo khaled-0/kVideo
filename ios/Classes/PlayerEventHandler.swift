@@ -10,13 +10,22 @@ import Flutter
 import Foundation
 import UIKit
 
-class PlayerEventHandler: NSObject {
+class PlayerEventHandler {
     public let listener: PlayerEventListener
     private var controller: PlayerController
 
     private var timeObserver: Any?
+
     private var statusObserver: NSKeyValueObservation?
-    private var observerAdded = false
+    private var itemStatusObserver: NSKeyValueObservation?
+
+    private var timeControlObserver: NSKeyValueObservation?
+    private var speedObserver: NSKeyValueObservation?
+
+    private var durationObserver: NSKeyValueObservation?
+    private var timeRangeObserver: NSKeyValueObservation?
+
+    private var playerNotificationsObserver: NSKeyValueObservation?
 
     init(messenger: FlutterBinaryMessenger, controller: PlayerController) {
         self.listener = PlayerEventListener(
@@ -24,109 +33,133 @@ class PlayerEventHandler: NSObject {
             messageChannelSuffix: controller.suffix
         )
         self.controller = controller
-        super.init()
 
-        attachObservers()
+        attachPlayerObservers()
         attachPeriodicProgressUpdate()
     }
 
     deinit { removeObservers() }
 
-    func addObservers() {
-        let player = controller.player
-        guard let item = player.currentItem else { return }
-
-        player.addObserver(
-            self,
-            forKeyPath: "timeControlStatus",
-            options: [],
-            context: nil
-        )
-        player.addObserver(self, forKeyPath: "rate", options: [], context: nil)
-        item.addObserver(
-            self,
-            forKeyPath: "loadedTimeRanges",
-            options: [],
-            context: nil
-        )
-        item.addObserver(
-            self,
-            forKeyPath: "status",
-            options: [],
-            context: nil
-        )
-
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(itemDidPlayToEndTime(_:)),
-            name: .AVPlayerItemDidPlayToEndTime,
-            object: item
-        )
-
-        observerAdded = true
-        attachObservers()
-    }
-
     func removeObservers() {
         let player = controller.player
-        if let timeObserver = timeObserver {
+
+        if let timeObserver = self.timeObserver {
             controller.player.removeTimeObserver(timeObserver)
             self.timeObserver = nil
         }
 
-        if let statusObserver = statusObserver {
-            controller.player.removeTimeObserver(statusObserver)
-            self.statusObserver = nil
-        }
+        self.statusObserver?.invalidate()
+        self.statusObserver = nil
 
-        guard observerAdded == true else { return }
+        self.itemStatusObserver?.invalidate()
+        self.itemStatusObserver = nil
 
-        player.removeObserver(self, forKeyPath: "timeControlStatus")
-        player.removeObserver(self, forKeyPath: "rate")
-        player.currentItem?.removeObserver(self, forKeyPath: "status")
-        player.currentItem?.removeObserver(self, forKeyPath: "loadedTimeRanges")
+        self.timeControlObserver?.invalidate()
+        self.timeControlObserver = nil
+
+        self.speedObserver?.invalidate()
+        self.speedObserver = nil
+
+        self.durationObserver?.invalidate()
+        self.durationObserver = nil
+
+        self.timeRangeObserver?.invalidate()
+        self.timeRangeObserver = nil
+
+        self.playerNotificationsObserver?.invalidate()
+        self.playerNotificationsObserver = nil
+
         NotificationCenter.default.removeObserver(self)
-        observerAdded = false
+
     }
 
-    override func observeValue(
-        forKeyPath keyPath: String?,
-        of object: Any?,
-        change: [NSKeyValueChangeKey: Any]?,
-        context: UnsafeMutableRawPointer?
-    ) {
-        guard let item = object as? AVPlayerItem else { return }
+    func attachPlayerObservers() {
+        let player = controller.player
 
-        switch keyPath {
-        case "status", "timeControlStatus":
-            handleStatusUpdate(item: item)
-        case "loadedTimeRanges":
-            sendBufferUpdate(item: item)
-        case "rate":
-            sendSpeedUpdate()
-
-        default:
-            break
+        statusObserver = player.observe(\.status, options: [.new]) {
+            [weak self] player, _ in
+            guard player.currentItem != nil else { return }
+            self?.handleStatusUpdate(item: player.currentItem!)
         }
 
+        itemStatusObserver = player.observe(
+            \.currentItem?.status,
+            options: [.new]
+        ) {
+            [weak self] player, _ in
+            guard player.currentItem != nil else { return }
+            self?.handleStatusUpdate(item: player.currentItem!)
+        }
+
+        speedObserver = player.observe(\.rate, options: [.new]) {
+            [weak self] player, rate in
+            guard let rate = rate.newValue else { return }
+            if rate == 0.0 { return }
+            self?.listener.onPlaybackSpeedUpdate(speed: Double(rate)) { _ in }
+        }
+
+        timeControlObserver = player.observe(
+            \.timeControlStatus,
+            options: [.new]
+        ) {
+            [weak self] player, _ in
+            guard player.currentItem != nil else { return }
+            self?.handleStatusUpdate(item: player.currentItem!)
+        }
+
+        durationObserver = player.observe(
+            \.currentItem?.duration,
+            options: [.new]
+        ) {
+            [weak self] player, change in
+            var duration = change.newValue??.seconds ?? 0
+            if !duration.isFinite { duration = 0 }
+            self?.listener.onDurationUpdate(second: Int64(duration)) {
+                _ in
+            }
+        }
+
+        timeRangeObserver = player.observe(
+            \.currentItem?.loadedTimeRanges,
+            options: [.new]
+        ) {
+            [weak self] player, _ in
+            guard let currentItem = player.currentItem else { return }
+            self?.sendBufferUpdate(item: currentItem)
+        }
+
+        playerNotificationsObserver = player.observe(
+            \.currentItem,
+            options: [.new]
+        ) {
+            [weak self] _, _ in
+            guard let self else { return }
+
+            NotificationCenter.default.removeObserver(self)
+
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(contentDidFinishPlaying(_:)),
+                name: AVPlayerItem.didPlayToEndTimeNotification,
+                object: player.currentItem
+            )
+
+        }
     }
 
-    @objc func itemDidPlayToEndTime(_ notification: Notification) {
-        listener.onPlaybackUpdate(status: .finished) { _ in }
-    }
+    func handleStatusUpdate(item: AVPlayerItem?) {
 
-    func handleStatusUpdate(item: AVPlayerItem) {
-        if item.status == .readyToPlay {
+        if item?.status == .readyToPlay {
             disableBuiltInSubtitle()
             self.listener.onTracksLoaded(
                 tracks: (try? controller.getTracks()) ?? []
             ) { _ in }
         }
 
-        if item.status == .failed {
-            print("Playback error: \(item.error.debugDescription)")
+        if item?.status == .failed {
+            NSLog("Playback error: \(item!.error.debugDescription)")
             self.listener.onPlaybackError(
-                error: item.error.debugDescription
+                error: item!.error.debugDescription
             ) { _ in }
         }
 
@@ -157,10 +190,13 @@ class PlayerEventHandler: NSObject {
         listener.onBufferUpdate(second: Int64(bufferedAhead)) { _ in }
     }
 
-    func sendSpeedUpdate() {
-        let rate = controller.player.rate
-        if rate == 0.0 { return }
-        listener.onPlaybackSpeedUpdate(speed: Double(rate)) { _ in }
+    @objc func contentDidFinishPlaying(_ notification: Notification) {
+        // Make sure we don't call contentComplete as a result of an ad completing.
+        if notification.object as? AVPlayerItem == controller.player.currentItem
+        {
+            listener.onPlaybackUpdate(status: .finished) { _ in }
+            controller.adsLoader.contentComplete()
+        }
     }
 }
 
@@ -195,62 +231,5 @@ extension PlayerEventHandler {
         ) {
             item.select(nil, in: group)
         }
-    }
-}
-
-// MARK: - Observers for Player Events
-extension PlayerEventHandler {
-    func attachObservers() {
-        let player = controller.player
-
-        // Observe playback rate
-        statusObserver = player.observe(\.timeControlStatus, options: [.new]) {
-            [weak self] player, _ in
-            guard player.currentItem != nil else { return }
-            self?.handleStatusUpdate(item: player.currentItem!)
-        }
-
-        // Observe playback duration updates
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(handleItemDurationUpdate),
-            name: AVPlayerItem.newAccessLogEntryNotification,
-            object: controller.player.currentItem
-        )
-
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(contentDidFinishPlaying(_:)),
-            name: .AVPlayerItemDidPlayToEndTime,
-            object: controller.player.currentItem
-        )
-
-    }
-
-    // Handle Item Duration Update
-    @objc func handleItemDurationUpdate(notification: Notification) {
-        guard let item = controller.player.currentItem else { return }
-        let duration = item.duration.seconds
-        if duration.isFinite {
-            self.listener.onDurationUpdate(second: Int64(duration)) {
-                _ in
-            }
-        }
-    }
-
-    // Content Playback Finished
-    @objc func contentDidFinishPlaying(_ notification: Notification) {
-        // Make sure we don't call contentComplete as a result of an ad completing.
-        if notification.object as? AVPlayerItem == controller.player.currentItem
-        {
-            controller.adsLoader.contentComplete()
-        }
-    }
-}
-
-// MARK: - IMA Event (Ads)
-extension PlayerEventHandler {
-    func onIMAEvent(isAdPlaying: Bool) {
-        listener.onIMAStatusChange(showingAd: isAdPlaying) { _ in }
     }
 }

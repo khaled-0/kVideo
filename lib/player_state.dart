@@ -24,6 +24,8 @@ class PlayerState implements PlayerEventListener {
 
   final ValueNotifier<bool> pipMode = ValueNotifier(false);
 
+  final ValueNotifier<bool> ima = ValueNotifier(false);
+
   @override
   void onBufferUpdate(int second) {
     buffer.value = Duration(seconds: second);
@@ -36,7 +38,7 @@ class PlayerState implements PlayerEventListener {
 
   @override
   void onIMAStatusChange(bool showingAd) {
-    // TODO: implement onIMAStatusChange
+    ima.value = showingAd;
   }
 
   @override

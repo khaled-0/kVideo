@@ -153,9 +153,7 @@ public class PlayerController: NSObject, FlutterPlatformView,
             self.playerItem!.seek(to: cm, completionHandler: nil)
         }
 
-        //self.eventHandler.removeObservers()
         player.replaceCurrentItem(with: self.playerItem)
-        self.eventHandler.addObservers()
         self.player.play()
 
         asset.fetchAllTrackData { tracks in
@@ -263,6 +261,8 @@ public class PlayerController: NSObject, FlutterPlatformView,
     // ---------------------------------------------------------------------
 
     func getPlaybackStatus() throws -> PlaybackStatus {
+        if player.currentItem?.status == .failed { return .error }
+
         if player.status == .failed { return .error }
         if player.status == .unknown { return .finished }
 
@@ -296,9 +296,7 @@ public class PlayerController: NSObject, FlutterPlatformView,
     // MARK: - Dispose
     // ---------------------------------------------------------------------
 
-    deinit {
-        dispose()
-    }
+    deinit { dispose() }
 
     func dispose() {
         pipController?.stopPictureInPicture()
@@ -308,6 +306,7 @@ public class PlayerController: NSObject, FlutterPlatformView,
         player.pause()
         player.replaceCurrentItem(with: nil)
         eventHandler.removeObservers()
+        eventHandler = nil
 
         // Clean up IMA SDK
         adsManager?.destroy()
@@ -444,10 +443,10 @@ extension PlayerController {
             }
 
         case .STARTED:
-            eventHandler.onIMAEvent(isAdPlaying: true)
+            eventHandler.listener.onIMAStatusChange(showingAd: true) { _ in }
 
         case .SKIPPED, .COMPLETE, .ALL_ADS_COMPLETED:
-            eventHandler.onIMAEvent(isAdPlaying: false)
+            eventHandler.listener.onIMAStatusChange(showingAd: false) { _ in }
 
         default:
             break
@@ -473,13 +472,13 @@ extension PlayerController {
 
     public func adsManagerDidRequestContentPause(_ adsManager: IMAAdsManager) {
         if player.currentItem == nil { return }
-        eventHandler.onIMAEvent(isAdPlaying: true)
+        eventHandler.listener.onIMAStatusChange(showingAd: true) { _ in }
         player.pause()
     }
 
     public func adsManagerDidRequestContentResume(_ adsManager: IMAAdsManager) {
         if player.currentItem == nil { return }
-        eventHandler.onIMAEvent(isAdPlaying: false)
+        eventHandler.listener.onIMAStatusChange(showingAd: false) { _ in }
         player.play()
     }
 

@@ -1,6 +1,6 @@
 name: kvideo
 description: "Flutter Video Player"
-version: 0.0.3
+version: 0.0.4
 homepage: https://github.com/khaled-0/kVideo
 
 environment:
