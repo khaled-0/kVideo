@@ -305,14 +305,17 @@ public class PlayerController: NSObject, FlutterPlatformView,
 
         player.pause()
         player.replaceCurrentItem(with: nil)
-        eventHandler.removeObservers()
-        eventHandler = nil
+
+        if self.eventHandler != nil {
+            eventHandler.removeObservers()
+            eventHandler = nil
+        }
 
         // Clean up IMA SDK
         adsManager?.destroy()
         adsManager = nil
 
-        adsLoader.delegate = nil
+        self.adsLoader.delegate = nil
         self.adDisplayContainer = nil
         self.playerView.adContainerView.removeFromSuperview()
     }
@@ -383,6 +386,8 @@ extension PlayerController {
     private func requestAds() {
         guard imaAdTagUrl != nil else { return }
         guard adsLoader.delegate != nil else { return }
+        /// Ensure AdView is mounted to screen
+        guard adDisplayContainer?.adContainer.window != nil else { return }
 
         adsManager?.destroy()
         adsLoader.contentComplete()

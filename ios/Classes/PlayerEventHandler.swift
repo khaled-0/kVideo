@@ -192,8 +192,7 @@ class PlayerEventHandler {
 
     @objc func contentDidFinishPlaying(_ notification: Notification) {
         // Make sure we don't call contentComplete as a result of an ad completing.
-        if notification.object as? AVPlayerItem == controller.player.currentItem
-        {
+        if notification.object as? AVPlayerItem == controller.playerItem {
             listener.onPlaybackUpdate(status: .finished) { _ in }
             controller.adsLoader.contentComplete()
         }
