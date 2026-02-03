@@ -205,8 +205,6 @@ struct Media: Hashable {
   var drmLicenseUrl: String? = nil
   /// Fairplay certificate. Can be either URL or Base64 encoded certificate
   var drmCertificate: String? = nil
-  /// External subtitles url
-  var subtitles: [String]? = nil
   /// Where to start media from (in seconds)
   var startFromSecond: Int64? = nil
   /// Player headers
@@ -220,16 +218,14 @@ struct Media: Hashable {
     let url = pigeonVar_list[0] as! String
     let drmLicenseUrl: String? = nilOrValue(pigeonVar_list[1])
     let drmCertificate: String? = nilOrValue(pigeonVar_list[2])
-    let subtitles: [String]? = nilOrValue(pigeonVar_list[3])
-    let startFromSecond: Int64? = nilOrValue(pigeonVar_list[4])
-    let headers: [String: String]? = nilOrValue(pigeonVar_list[5])
-    let imaTagUrl: String? = nilOrValue(pigeonVar_list[6])
+    let startFromSecond: Int64? = nilOrValue(pigeonVar_list[3])
+    let headers: [String: String]? = nilOrValue(pigeonVar_list[4])
+    let imaTagUrl: String? = nilOrValue(pigeonVar_list[5])
 
     return Media(
       url: url,
       drmLicenseUrl: drmLicenseUrl,
       drmCertificate: drmCertificate,
-      subtitles: subtitles,
       startFromSecond: startFromSecond,
       headers: headers,
       imaTagUrl: imaTagUrl
@@ -240,7 +236,6 @@ struct Media: Hashable {
       url,
       drmLicenseUrl,
       drmCertificate,
-      subtitles,
       startFromSecond,
       headers,
       imaTagUrl,

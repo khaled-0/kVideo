@@ -128,7 +128,6 @@ class Media {
     required this.url,
     this.drmLicenseUrl,
     this.drmCertificate,
-    this.subtitles,
     this.startFromSecond,
     this.headers,
     this.imaTagUrl,
@@ -142,9 +141,6 @@ class Media {
 
   /// Fairplay certificate. Can be either URL or Base64 encoded certificate
   String? drmCertificate;
-
-  /// External subtitles url
-  List<String>? subtitles;
 
   /// Where to start media from (in seconds)
   int? startFromSecond;
@@ -160,7 +156,6 @@ class Media {
       url,
       drmLicenseUrl,
       drmCertificate,
-      subtitles,
       startFromSecond,
       headers,
       imaTagUrl,
@@ -176,10 +171,9 @@ class Media {
       url: result[0]! as String,
       drmLicenseUrl: result[1] as String?,
       drmCertificate: result[2] as String?,
-      subtitles: (result[3] as List<Object?>?)?.cast<String>(),
-      startFromSecond: result[4] as int?,
-      headers: (result[5] as Map<Object?, Object?>?)?.cast<String, String>(),
-      imaTagUrl: result[6] as String?,
+      startFromSecond: result[3] as int?,
+      headers: (result[4] as Map<Object?, Object?>?)?.cast<String, String>(),
+      imaTagUrl: result[5] as String?,
     );
   }
 

@@ -178,8 +178,6 @@ data class Media (
   val drmLicenseUrl: String? = null,
   /** Fairplay certificate. Can be either URL or Base64 encoded certificate */
   val drmCertificate: String? = null,
-  /** External subtitles url */
-  val subtitles: List<String>? = null,
   /** Where to start media from (in seconds) */
   val startFromSecond: Long? = null,
   /** Player headers */
@@ -193,11 +191,10 @@ data class Media (
       val url = pigeonVar_list[0] as String
       val drmLicenseUrl = pigeonVar_list[1] as String?
       val drmCertificate = pigeonVar_list[2] as String?
-      val subtitles = pigeonVar_list[3] as List<String>?
-      val startFromSecond = pigeonVar_list[4] as Long?
-      val headers = pigeonVar_list[5] as Map<String, String>?
-      val imaTagUrl = pigeonVar_list[6] as String?
-      return Media(url, drmLicenseUrl, drmCertificate, subtitles, startFromSecond, headers, imaTagUrl)
+      val startFromSecond = pigeonVar_list[3] as Long?
+      val headers = pigeonVar_list[4] as Map<String, String>?
+      val imaTagUrl = pigeonVar_list[5] as String?
+      return Media(url, drmLicenseUrl, drmCertificate, startFromSecond, headers, imaTagUrl)
     }
   }
   fun toList(): List<Any?> {
@@ -205,7 +202,6 @@ data class Media (
       url,
       drmLicenseUrl,
       drmCertificate,
-      subtitles,
       startFromSecond,
       headers,
       imaTagUrl,

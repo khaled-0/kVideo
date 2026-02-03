@@ -111,9 +111,6 @@ class Media {
   /// Fairplay certificate. Can be either URL or Base64 encoded certificate
   final String? drmCertificate;
 
-  /// External subtitles url
-  final List<String>? subtitles;
-
   /// Where to start media from (in seconds)
   final int? startFromSecond;
 
@@ -130,7 +127,6 @@ class Media {
     this.startFromSecond,
     this.headers,
     this.imaTagUrl,
-    this.subtitles,
   });
 }
 
