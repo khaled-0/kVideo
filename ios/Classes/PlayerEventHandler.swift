@@ -26,6 +26,7 @@ class PlayerEventHandler {
     private var timeRangeObserver: NSKeyValueObservation?
 
     private var playerNotificationsObserver: NSKeyValueObservation?
+    private var didLoadTracks: Bool = false
 
     init(messenger: FlutterBinaryMessenger, controller: PlayerController) {
         self.listener = PlayerEventListener(
@@ -135,6 +136,8 @@ class PlayerEventHandler {
             [weak self] _, _ in
             guard let self else { return }
 
+            self.didLoadTracks = false
+
             NotificationCenter.default.removeObserver(self)
 
             NotificationCenter.default.addObserver(
@@ -149,11 +152,12 @@ class PlayerEventHandler {
 
     func handleStatusUpdate(item: AVPlayerItem?) {
 
-        if item?.status == .readyToPlay {
+        if item?.status == .readyToPlay && !didLoadTracks {
             disableBuiltInSubtitle()
             self.listener.onTracksLoaded(
                 tracks: (try? controller.getTracks()) ?? []
             ) { _ in }
+            self.didLoadTracks = true
         }
 
         if item?.status == .failed {
