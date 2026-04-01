@@ -6,13 +6,15 @@ import androidx.annotation.OptIn
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.PlayerView.SHOW_BUFFERING_NEVER
 import io.flutter.embedding.engine.plugins.FlutterPlugin
+import io.flutter.embedding.engine.plugins.activity.ActivityAware
+import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.platform.PlatformView
 import io.flutter.plugin.platform.PlatformViewFactory
 import io.flutter.view.TextureRegistry
 
 
-class KVideoPlugin : FlutterPlugin, PlayerInstance {
+class KVideoPlugin : FlutterPlugin, ActivityAware, PlayerInstance {
 
     companion object {
         val controllers = mutableMapOf<String, PlayerController>()
@@ -54,6 +56,18 @@ class KVideoPlugin : FlutterPlugin, PlayerInstance {
     override fun dispose(id: String) {
         controllers[id]?.dispose()
     }
+
+    override fun onAttachedToActivity(binding: ActivityPluginBinding) {
+        context = binding.activity
+    }
+
+
+    override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
+        context = binding.activity
+    }
+
+    override fun onDetachedFromActivityForConfigChanges() {}
+    override fun onDetachedFromActivity() {}
 }
 
 private class PlayerFactory(

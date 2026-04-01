@@ -47,29 +47,6 @@ class PiPActivity : ComponentActivity() {
             @Suppress("DEPRECATION") enterPictureInPictureMode()
         } else {
             val params = PictureInPictureParams.Builder()
-//            ContextCompat.registerReceiver(
-//                this,
-//                actionsReceiver,
-//                IntentFilter(ACTION_BROADCAST_CONTROL),
-//                ContextCompat.RECEIVER_NOT_EXPORTED
-//            )
-
-//            val action = RemoteAction(
-//                Icon.createWithResource(
-//                    this, if (controller.player.isPlaying) android.R.drawable.ic_media_pause
-//                    else android.R.drawable.ic_media_play
-//                ),
-//                "Play/Pause",
-//                "Play or Pause the currently playing content",
-//                PendingIntent.getBroadcast(
-//                    this,
-//                    0,
-//                    Intent(ACTION_BROADCAST_CONTROL),
-//                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-//                )
-//            )
-
-//            params.setActions(listOf(action))
             enterPictureInPictureMode(params.build())
         }
     }
@@ -86,12 +63,7 @@ class PiPActivity : ComponentActivity() {
     override fun finishAndRemoveTask() {
         super.finishAndRemoveTask()
         PiPManager.notifyPipExited()
-//        unregisterReceiver(actionsReceiver)
     }
-
-//    companion object {
-//        const val ACTION_BROADCAST_CONTROL = "ACTION_BROADCAST_CONTROL"
-//    }
 }
 
 object PiPManager {

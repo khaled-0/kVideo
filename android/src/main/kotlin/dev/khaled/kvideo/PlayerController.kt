@@ -1,5 +1,6 @@
 package dev.khaled.kvideo
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.view.SurfaceView
@@ -203,6 +204,12 @@ class PlayerController(
             } else {
                 playerView.player = player
                 player.setVideoSurfaceView(playerView.videoSurfaceView as SurfaceView)
+            }
+
+            if (context is Activity) {
+                val intent = Intent(context, context.javaClass)
+                intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+                context.startActivity(intent)
             }
         }
     }
