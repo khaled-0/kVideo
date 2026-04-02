@@ -1,8 +1,14 @@
 package dev.khaled.kvideo
 
 import android.content.Context
+import android.media.MediaDrm
+import android.media.MediaDrm.PROPERTY_ALGORITHMS
+import android.media.MediaDrm.PROPERTY_DESCRIPTION
+import android.media.MediaDrm.PROPERTY_VENDOR
+import android.media.MediaDrm.PROPERTY_VERSION
 import android.view.View
 import androidx.annotation.OptIn
+import androidx.media3.common.C
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.PlayerView.SHOW_BUFFERING_NEVER
 import io.flutter.embedding.engine.plugins.FlutterPlugin
@@ -12,9 +18,10 @@ import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.platform.PlatformView
 import io.flutter.plugin.platform.PlatformViewFactory
 import io.flutter.view.TextureRegistry
+import kotlin.String
 
 
-class KVideoPlugin : FlutterPlugin, ActivityAware, PlayerInstance {
+class KVideoPlugin : FlutterPlugin, ActivityAware, PlayerInstance, DRMInfoApi {
 
     companion object {
         val controllers = mutableMapOf<String, PlayerController>()
@@ -41,6 +48,7 @@ class KVideoPlugin : FlutterPlugin, ActivityAware, PlayerInstance {
         )
 
         DownloadManagerApi.setUp(binaryMessenger, KDownloadManager(context, binaryMessenger))
+        DRMInfoApi.setUp(binaryMessenger, this)
     }
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
@@ -55,6 +63,19 @@ class KVideoPlugin : FlutterPlugin, ActivityAware, PlayerInstance {
 
     override fun dispose(id: String) {
         controllers[id]?.dispose()
+    }
+
+    override fun getWidevineInfo() : WidevineInfo {
+        val mediaDrm = MediaDrm(C.WIDEVINE_UUID)
+        // https://stackoverflow.com/questions/24892532/drmmanagerclient-acquiredrminfo-is-failing
+        return WidevineInfo(
+            vendor = mediaDrm.getPropertyString(PROPERTY_VENDOR),
+            version = mediaDrm.getPropertyString(PROPERTY_VERSION),
+            description = mediaDrm.getPropertyString(PROPERTY_DESCRIPTION),
+            algorithms = mediaDrm.getPropertyString(PROPERTY_ALGORITHMS),
+            securityLevel = mediaDrm.getPropertyString("securityLevel"),
+            maxHdcpLevel = mediaDrm.getPropertyString("maxHdcpLevel"),
+        )
     }
 
     override fun onAttachedToActivity(binding: ActivityPluginBinding) {

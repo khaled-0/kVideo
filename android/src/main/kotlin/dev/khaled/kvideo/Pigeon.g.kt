@@ -403,6 +403,49 @@ data class DownloadData (
 
   override fun hashCode(): Int = toList().hashCode()
 }
+
+/** Generated class from Pigeon that represents data sent in messages. */
+data class WidevineInfo (
+  val vendor: String,
+  val version: String? = null,
+  val description: String,
+  val algorithms: String,
+  val securityLevel: String,
+  val maxHdcpLevel: String? = null
+)
+ {
+  companion object {
+    fun fromList(pigeonVar_list: List<Any?>): WidevineInfo {
+      val vendor = pigeonVar_list[0] as String
+      val version = pigeonVar_list[1] as String?
+      val description = pigeonVar_list[2] as String
+      val algorithms = pigeonVar_list[3] as String
+      val securityLevel = pigeonVar_list[4] as String
+      val maxHdcpLevel = pigeonVar_list[5] as String?
+      return WidevineInfo(vendor, version, description, algorithms, securityLevel, maxHdcpLevel)
+    }
+  }
+  fun toList(): List<Any?> {
+    return listOf(
+      vendor,
+      version,
+      description,
+      algorithms,
+      securityLevel,
+      maxHdcpLevel,
+    )
+  }
+  override fun equals(other: Any?): Boolean {
+    if (other !is WidevineInfo) {
+      return false
+    }
+    if (this === other) {
+      return true
+    }
+    return PigeonPigeonUtils.deepEquals(toList(), other.toList())  }
+
+  override fun hashCode(): Int = toList().hashCode()
+}
 private open class PigeonPigeonCodec : StandardMessageCodec() {
   override fun readValueOfType(type: Byte, buffer: ByteBuffer): Any? {
     return when (type) {
@@ -461,6 +504,11 @@ private open class PigeonPigeonCodec : StandardMessageCodec() {
           DownloadData.fromList(it)
         }
       }
+      140.toByte() -> {
+        return (readValue(buffer) as? List<Any?>)?.let {
+          WidevineInfo.fromList(it)
+        }
+      }
       else -> super.readValueOfType(type, buffer)
     }
   }
@@ -508,6 +556,10 @@ private open class PigeonPigeonCodec : StandardMessageCodec() {
       }
       is DownloadData -> {
         stream.write(139)
+        writeValue(stream, value.toList())
+      }
+      is WidevineInfo -> {
+        stream.write(140)
         writeValue(stream, value.toList())
       }
       else -> super.writeValue(stream, value)
@@ -1325,6 +1377,38 @@ class DownloadEventListener(private val binaryMessenger: BinaryMessenger, privat
       } else {
         callback(Result.failure(PigeonPigeonUtils.createConnectionError(channelName)))
       } 
+    }
+  }
+}
+/** Generated interface from Pigeon that represents a handler of messages from Flutter. */
+interface DRMInfoApi {
+  /** Platform: android */
+  fun getWidevineInfo(): WidevineInfo
+
+  companion object {
+    /** The codec used by DRMInfoApi. */
+    val codec: MessageCodec<Any?> by lazy {
+      PigeonPigeonCodec()
+    }
+    /** Sets up an instance of `DRMInfoApi` to handle messages through the `binaryMessenger`. */
+    @JvmOverloads
+    fun setUp(binaryMessenger: BinaryMessenger, api: DRMInfoApi?, messageChannelSuffix: String = "") {
+      val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.kvideo.DRMInfoApi.getWidevineInfo$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { _, reply ->
+            val wrapped: List<Any?> = try {
+              listOf(api.getWidevineInfo())
+            } catch (exception: Throwable) {
+              PigeonPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
     }
   }
 }

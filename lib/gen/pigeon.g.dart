@@ -475,6 +475,72 @@ class DownloadData {
 ;
 }
 
+class WidevineInfo {
+  WidevineInfo({
+    required this.vendor,
+    this.version,
+    required this.description,
+    required this.algorithms,
+    required this.securityLevel,
+    this.maxHdcpLevel,
+  });
+
+  String vendor;
+
+  String? version;
+
+  String description;
+
+  String algorithms;
+
+  String securityLevel;
+
+  String? maxHdcpLevel;
+
+  List<Object?> _toList() {
+    return <Object?>[
+      vendor,
+      version,
+      description,
+      algorithms,
+      securityLevel,
+      maxHdcpLevel,
+    ];
+  }
+
+  Object encode() {
+    return _toList();  }
+
+  static WidevineInfo decode(Object result) {
+    result as List<Object?>;
+    return WidevineInfo(
+      vendor: result[0]! as String,
+      version: result[1] as String?,
+      description: result[2]! as String,
+      algorithms: result[3]! as String,
+      securityLevel: result[4]! as String,
+      maxHdcpLevel: result[5] as String?,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! WidevineInfo || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(encode(), other.encode());
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => Object.hashAll(_toList())
+;
+}
+
 
 class _PigeonCodec extends StandardMessageCodec {
   const _PigeonCodec();
@@ -516,6 +582,9 @@ class _PigeonCodec extends StandardMessageCodec {
     }    else if (value is DownloadData) {
       buffer.putUint8(139);
       writeValue(buffer, value.encode());
+    }    else if (value is WidevineInfo) {
+      buffer.putUint8(140);
+      writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
     }
@@ -550,6 +619,8 @@ class _PigeonCodec extends StandardMessageCodec {
         return TrackData.decode(readValue(buffer)!);
       case 139: 
         return DownloadData.decode(readValue(buffer)!);
+      case 140: 
+        return WidevineInfo.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
     }
@@ -1693,6 +1764,49 @@ abstract class DownloadEventListener {
           }
         });
       }
+    }
+  }
+}
+
+class DRMInfoApi {
+  /// Constructor for [DRMInfoApi].  The [binaryMessenger] named argument is
+  /// available for dependency injection.  If it is left null, the default
+  /// BinaryMessenger will be used which routes to the host platform.
+  DRMInfoApi({BinaryMessenger? binaryMessenger, String messageChannelSuffix = ''})
+      : pigeonVar_binaryMessenger = binaryMessenger,
+        pigeonVar_messageChannelSuffix = messageChannelSuffix.isNotEmpty ? '.$messageChannelSuffix' : '';
+  final BinaryMessenger? pigeonVar_binaryMessenger;
+
+  static const MessageCodec<Object?> pigeonChannelCodec = _PigeonCodec();
+
+  final String pigeonVar_messageChannelSuffix;
+
+  /// Platform: android
+  Future<WidevineInfo> getWidevineInfo() async {
+    final String pigeonVar_channelName = 'dev.flutter.pigeon.kvideo.DRMInfoApi.getWidevineInfo$pigeonVar_messageChannelSuffix';
+    final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final List<Object?>? pigeonVar_replyList =
+        await pigeonVar_sendFuture as List<Object?>?;
+    if (pigeonVar_replyList == null) {
+      throw _createConnectionError(pigeonVar_channelName);
+    } else if (pigeonVar_replyList.length > 1) {
+      throw PlatformException(
+        code: pigeonVar_replyList[0]! as String,
+        message: pigeonVar_replyList[1] as String?,
+        details: pigeonVar_replyList[2],
+      );
+    } else if (pigeonVar_replyList[0] == null) {
+      throw PlatformException(
+        code: 'null-error',
+        message: 'Host platform returned null value for non-null return value.',
+      );
+    } else {
+      return (pigeonVar_replyList[0] as WidevineInfo?)!;
     }
   }
 }

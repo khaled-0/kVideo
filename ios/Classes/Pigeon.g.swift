@@ -433,6 +433,51 @@ struct DownloadData: Hashable {
   }
 }
 
+/// Generated class from Pigeon that represents data sent in messages.
+struct WidevineInfo: Hashable {
+  var vendor: String
+  var version: String? = nil
+  var description: String
+  var algorithms: String
+  var securityLevel: String
+  var maxHdcpLevel: String? = nil
+
+
+  // swift-format-ignore: AlwaysUseLowerCamelCase
+  static func fromList(_ pigeonVar_list: [Any?]) -> WidevineInfo? {
+    let vendor = pigeonVar_list[0] as! String
+    let version: String? = nilOrValue(pigeonVar_list[1])
+    let description = pigeonVar_list[2] as! String
+    let algorithms = pigeonVar_list[3] as! String
+    let securityLevel = pigeonVar_list[4] as! String
+    let maxHdcpLevel: String? = nilOrValue(pigeonVar_list[5])
+
+    return WidevineInfo(
+      vendor: vendor,
+      version: version,
+      description: description,
+      algorithms: algorithms,
+      securityLevel: securityLevel,
+      maxHdcpLevel: maxHdcpLevel
+    )
+  }
+  func toList() -> [Any?] {
+    return [
+      vendor,
+      version,
+      description,
+      algorithms,
+      securityLevel,
+      maxHdcpLevel,
+    ]
+  }
+  static func == (lhs: WidevineInfo, rhs: WidevineInfo) -> Bool {
+    return deepEqualsPigeon(lhs.toList(), rhs.toList())  }
+  func hash(into hasher: inout Hasher) {
+    deepHashPigeon(value: toList(), hasher: &hasher)
+  }
+}
+
 private class PigeonPigeonCodecReader: FlutterStandardReader {
   override func readValue(ofType type: UInt8) -> Any? {
     switch type {
@@ -474,6 +519,8 @@ private class PigeonPigeonCodecReader: FlutterStandardReader {
       return TrackData.fromList(self.readValue() as! [Any?])
     case 139:
       return DownloadData.fromList(self.readValue() as! [Any?])
+    case 140:
+      return WidevineInfo.fromList(self.readValue() as! [Any?])
     default:
       return super.readValue(ofType: type)
     }
@@ -514,6 +561,9 @@ private class PigeonPigeonCodecWriter: FlutterStandardWriter {
       super.writeValue(value.toList())
     } else if let value = value as? DownloadData {
       super.writeByte(139)
+      super.writeValue(value.toList())
+    } else if let value = value as? WidevineInfo {
+      super.writeByte(140)
       super.writeValue(value.toList())
     } else {
       super.writeValue(value)
@@ -1304,6 +1354,34 @@ class DownloadEventListener: DownloadEventListenerProtocol {
       } else {
         completion(.success(()))
       }
+    }
+  }
+}
+/// Generated protocol from Pigeon that represents a handler of messages from Flutter.
+protocol DRMInfoApi {
+  /// Platform: android
+  func getWidevineInfo() throws -> WidevineInfo
+}
+
+/// Generated setup class from Pigeon to handle messages through the `binaryMessenger`.
+class DRMInfoApiSetup {
+  static var codec: FlutterStandardMessageCodec { PigeonPigeonCodec.shared }
+  /// Sets up an instance of `DRMInfoApi` to handle messages through the `binaryMessenger`.
+  static func setUp(binaryMessenger: FlutterBinaryMessenger, api: DRMInfoApi?, messageChannelSuffix: String = "") {
+    let channelSuffix = messageChannelSuffix.count > 0 ? ".\(messageChannelSuffix)" : ""
+    /// Platform: android
+    let getWidevineInfoChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.kvideo.DRMInfoApi.getWidevineInfo\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      getWidevineInfoChannel.setMessageHandler { _, reply in
+        do {
+          let result = try api.getWidevineInfo()
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      getWidevineInfoChannel.setMessageHandler(nil)
     }
   }
 }

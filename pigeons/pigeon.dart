@@ -224,3 +224,27 @@ abstract class DownloadEventListener {
 
   void onRemoved(String id);
 }
+
+@HostApi()
+abstract class DRMInfoApi {
+  /// Platform: android
+  WidevineInfo getWidevineInfo();
+}
+
+class WidevineInfo {
+  final String vendor;
+  final String? version;
+  final String description;
+  final String algorithms;
+  final String securityLevel;
+  final String? maxHdcpLevel;
+
+  WidevineInfo({
+    required this.vendor,
+    required this.description,
+    required this.algorithms,
+    required this.securityLevel,
+    this.version,
+    this.maxHdcpLevel,
+  });
+}
