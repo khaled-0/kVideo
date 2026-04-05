@@ -997,12 +997,12 @@ class PlayerEventListener(private val binaryMessenger: BinaryMessenger, private 
     }
   }
   /** Only used for AndroidViewMode.texture */
-  fun onVideoSizeUpdate(widthArg: Long, heightArg: Long, callback: (Result<Unit>) -> Unit)
+  fun onVideoSizeUpdate(dataArg: VideoTextureData, callback: (Result<Unit>) -> Unit)
 {
     val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
     val channelName = "dev.flutter.pigeon.kvideo.PlayerEventListener.onVideoSizeUpdate$separatedMessageChannelSuffix"
     val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
-    channel.send(listOf(widthArg, heightArg)) {
+    channel.send(listOf(dataArg)) {
       if (it is List<*>) {
         if (it.size > 1) {
           callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))

@@ -18,6 +18,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
+import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.drm.DefaultDrmSessionManager
 import androidx.media3.exoplayer.drm.DummyExoMediaDrm
@@ -48,6 +49,7 @@ class PlayerController(
         private set
 
     private lateinit var surfaceProducer: TextureRegistry.SurfaceProducer
+    val isTextureViewMode get() = ::surfaceProducer.isInitialized
     private val eventHandler by lazy { PlayerEventHandler(binaryMessenger, suffix, this) }
 
 
@@ -76,7 +78,8 @@ class PlayerController(
             }
         }
 
-        player = ExoPlayer.Builder(context).apply {
+        val factory = DefaultRenderersFactory(context).setEnableDecoderFallback(true)
+        player = ExoPlayer.Builder(context, factory).apply {
             configuration?.bufferingConfig?.let {
                 setLoadControl(
                     DefaultLoadControl.Builder().setBufferDurationsMs(
@@ -116,9 +119,11 @@ class PlayerController(
 
 
     override fun initAndroidTextureView(): VideoTextureData {
+        if (::surfaceProducer.isInitialized) surfaceProducer.release()
         surfaceProducer = textureRegistry.createSurfaceProducer()
-        surfaceProducer.setCallback(this)
+        surfaceProducer.setCallback(this@PlayerController)
         val textureId = surfaceProducer.id()
+        player.clearVideoSurface()
         player.setVideoSurface(surfaceProducer.surface)
         return VideoTextureData(textureId = textureId, fit = getFit())
     }
@@ -200,7 +205,9 @@ class PlayerController(
         eventHandler.listener.onPiPModeChange(inPip) {}
         if (!inPip) {
             if (this::surfaceProducer.isInitialized) {
-                player.setVideoSurface(surfaceProducer.surface)
+                // Recreate Video TextureView. Using existing one does not seem to work every time
+                val data = initAndroidTextureView()
+                eventHandler.listener.onVideoSizeUpdate(data) {}
             } else {
                 playerView.player = player
                 player.setVideoSurfaceView(playerView.videoSurfaceView as SurfaceView)

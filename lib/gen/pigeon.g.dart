@@ -1204,7 +1204,7 @@ abstract class PlayerEventListener {
   static const MessageCodec<Object?> pigeonChannelCodec = _PigeonCodec();
 
   /// Only used for AndroidViewMode.texture
-  void onVideoSizeUpdate(int width, int height);
+  void onVideoSizeUpdate(VideoTextureData data);
 
   void onDurationUpdate(int second);
 
@@ -1237,14 +1237,11 @@ abstract class PlayerEventListener {
           assert(message != null,
           'Argument for dev.flutter.pigeon.kvideo.PlayerEventListener.onVideoSizeUpdate was null.');
           final List<Object?> args = (message as List<Object?>?)!;
-          final int? arg_width = (args[0] as int?);
-          assert(arg_width != null,
-              'Argument for dev.flutter.pigeon.kvideo.PlayerEventListener.onVideoSizeUpdate was null, expected non-null int.');
-          final int? arg_height = (args[1] as int?);
-          assert(arg_height != null,
-              'Argument for dev.flutter.pigeon.kvideo.PlayerEventListener.onVideoSizeUpdate was null, expected non-null int.');
+          final VideoTextureData? arg_data = (args[0] as VideoTextureData?);
+          assert(arg_data != null,
+              'Argument for dev.flutter.pigeon.kvideo.PlayerEventListener.onVideoSizeUpdate was null, expected non-null VideoTextureData.');
           try {
-            api.onVideoSizeUpdate(arg_width!, arg_height!);
+            api.onVideoSizeUpdate(arg_data!);
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);

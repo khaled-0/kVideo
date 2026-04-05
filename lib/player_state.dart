@@ -72,10 +72,13 @@ class PlayerState implements PlayerEventListener {
   }
 
   @override
-  void onVideoSizeUpdate(int width, int height) {
+  void onVideoSizeUpdate(VideoTextureData data) {
     if (_controller.androidViewMode != AndroidViewMode.texture) return;
     _controller.textureParams.value = _controller.textureParams.value.copyWith(
-      size: Size(width.toDouble(), height.toDouble()),
+      textureId: data.textureId,
+      size: (data.width != null && data.height != null)
+          ? Size(data.width!.toDouble(), data.height!.toDouble())
+          : null,
     );
   }
 

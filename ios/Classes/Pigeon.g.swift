@@ -943,7 +943,7 @@ class PlayerControllerApiSetup {
 /// Generated protocol from Pigeon that represents Flutter messages that can be called from Swift.
 protocol PlayerEventListenerProtocol {
   /// Only used for AndroidViewMode.texture
-  func onVideoSizeUpdate(width widthArg: Int64, height heightArg: Int64, completion: @escaping (Result<Void, PigeonError>) -> Void)
+  func onVideoSizeUpdate(data dataArg: VideoTextureData, completion: @escaping (Result<Void, PigeonError>) -> Void)
   func onDurationUpdate(second secondArg: Int64, completion: @escaping (Result<Void, PigeonError>) -> Void)
   func onProgressUpdate(second secondArg: Int64, completion: @escaping (Result<Void, PigeonError>) -> Void)
   func onBufferUpdate(second secondArg: Int64, completion: @escaping (Result<Void, PigeonError>) -> Void)
@@ -965,10 +965,10 @@ class PlayerEventListener: PlayerEventListenerProtocol {
     return PigeonPigeonCodec.shared
   }
   /// Only used for AndroidViewMode.texture
-  func onVideoSizeUpdate(width widthArg: Int64, height heightArg: Int64, completion: @escaping (Result<Void, PigeonError>) -> Void) {
+  func onVideoSizeUpdate(data dataArg: VideoTextureData, completion: @escaping (Result<Void, PigeonError>) -> Void) {
     let channelName: String = "dev.flutter.pigeon.kvideo.PlayerEventListener.onVideoSizeUpdate\(messageChannelSuffix)"
     let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
-    channel.sendMessage([widthArg, heightArg] as [Any?]) { response in
+    channel.sendMessage([dataArg] as [Any?]) { response in
       guard let listResponse = response as? [Any?] else {
         completion(.failure(createConnectionError(withChannelName: channelName)))
         return

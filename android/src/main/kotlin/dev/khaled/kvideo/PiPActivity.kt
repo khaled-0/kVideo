@@ -19,21 +19,13 @@ class PiPActivity : ComponentActivity() {
         KVideoPlugin.controllers[intent.getStringExtra("id")]!!
     }
 
-//    private val actionsReceiver = object : BroadcastReceiver() {
-//        override fun onReceive(context: Context?, intent: Intent?) {
-//            if (intent?.action == ACTION_BROADCAST_CONTROL) {
-//                if (controller.player.isPlaying) controller.player.pause()
-//                else controller.player.play()
-//            }
-//        }
-//    }
-
+    private lateinit var playerView: PlayerView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (!packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)) return finishAndRemoveTask()
 
-        val playerView = PlayerView(this)
+        playerView = PlayerView(this)
         setContentView(playerView)
 
         with(playerView) {
@@ -62,6 +54,7 @@ class PiPActivity : ComponentActivity() {
 
     override fun finishAndRemoveTask() {
         super.finishAndRemoveTask()
+        if (::playerView.isInitialized) playerView.player = null
         PiPManager.notifyPipExited()
     }
 }

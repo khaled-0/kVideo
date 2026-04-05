@@ -80,7 +80,7 @@ abstract class PlayerControllerApi {
 @FlutterApi()
 abstract class PlayerEventListener {
   /// Only used for AndroidViewMode.texture
-  void onVideoSizeUpdate(int width, int height);
+  void onVideoSizeUpdate(VideoTextureData data);
 
   void onDurationUpdate(int second);
 

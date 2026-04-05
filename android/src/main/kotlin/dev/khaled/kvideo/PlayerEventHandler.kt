@@ -8,8 +8,8 @@ import androidx.media3.common.Player.STATE_READY
 import androidx.media3.common.Timeline
 import androidx.media3.common.VideoSize
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.ExoPlaybackException
 import com.google.ads.interactivemedia.v3.api.AdEvent
-import io.flutter.Log
 import io.flutter.plugin.common.BinaryMessenger
 
 
@@ -74,6 +74,20 @@ class PlayerEventHandler(
 
     override fun onPlayerError(error: PlaybackException) {
         super.onPlayerError(error)
+        if (error is ExoPlaybackException && error.message != null) {
+            // Probably Surface re-attachment error, just retry
+            if (error.message!!.contains("Unexpected runtime error")) {
+                if (playerController.isTextureViewMode) {
+                    val data = playerController.initAndroidTextureView()
+                    listener.onVideoSizeUpdate(data) {}
+                }
+
+                player.prepare()
+                player.pause()
+                return
+            }
+        }
+
         listener.onPlaybackError(error.localizedMessage ?: error.toString()) {}
     }
 
@@ -91,8 +105,10 @@ class PlayerEventHandler(
     override fun onVideoSizeChanged(videoSize: VideoSize) {
         super.onVideoSizeChanged(videoSize)
         listener.onVideoSizeUpdate(
-            (videoSize.width * videoSize.pixelWidthHeightRatio).toLong(),
-            videoSize.height.toLong()
+            VideoTextureData(
+                width = (videoSize.width * videoSize.pixelWidthHeightRatio).toLong(),
+                height = videoSize.height.toLong()
+            )
         ) {}
     }
 
