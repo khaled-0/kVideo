@@ -9,6 +9,7 @@ import androidx.media3.common.Timeline
 import androidx.media3.common.VideoSize
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlaybackException
+import androidx.media3.exoplayer.source.BehindLiveWindowException
 import com.google.ads.interactivemedia.v3.api.AdEvent
 import io.flutter.plugin.common.BinaryMessenger
 
@@ -75,6 +76,14 @@ class PlayerEventHandler(
     override fun onPlayerError(error: PlaybackException) {
         super.onPlayerError(error)
         if (error is ExoPlaybackException && error.message != null) {
+
+            // Retry Live Automatically
+            if (error.cause is BehindLiveWindowException) {
+                player.prepare()
+                player.play()
+                return
+            }
+
             // Probably Surface re-attachment error, just retry
             if (error.message!!.contains("Unexpected runtime error")) {
                 if (playerController.isTextureViewMode) {
@@ -88,7 +97,7 @@ class PlayerEventHandler(
             }
         }
 
-        listener.onPlaybackError(error.localizedMessage ?: error.toString()) {}
+        listener.onPlaybackError(error.toString()) {}
     }
 
     override fun onAdEvent(event: AdEvent) {
