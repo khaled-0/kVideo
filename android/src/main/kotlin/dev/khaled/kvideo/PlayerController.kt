@@ -3,6 +3,8 @@ package dev.khaled.kvideo
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.os.Handler
+import android.os.Looper
 import android.view.SurfaceView
 import androidx.annotation.OptIn
 import androidx.core.net.toUri
@@ -49,7 +51,6 @@ class PlayerController(
         private set
 
     private lateinit var surfaceProducer: TextureRegistry.SurfaceProducer
-    val isTextureViewMode get() = ::surfaceProducer.isInitialized
     private val eventHandler by lazy { PlayerEventHandler(binaryMessenger, suffix, this) }
 
 
@@ -123,7 +124,6 @@ class PlayerController(
         surfaceProducer = textureRegistry.createSurfaceProducer()
         surfaceProducer.setCallback(this@PlayerController)
         val textureId = surfaceProducer.id()
-        player.clearVideoSurface()
         player.setVideoSurface(surfaceProducer.surface)
         return VideoTextureData(textureId = textureId, fit = getFit())
     }
@@ -204,19 +204,23 @@ class PlayerController(
     private val pipListener = { inPip: Boolean ->
         eventHandler.listener.onPiPModeChange(inPip) {}
         if (!inPip) {
-            if (this::surfaceProducer.isInitialized) {
-                // Recreate Video TextureView. Using existing one does not seem to work every time
-                val data = initAndroidTextureView()
-                eventHandler.listener.onVideoSizeUpdate(data) {}
-            } else {
-                playerView.player = player
-                player.setVideoSurfaceView(playerView.videoSurfaceView as SurfaceView)
-            }
-
             if (context is Activity) {
                 val intent = Intent(context, context.javaClass)
                 intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
                 context.startActivity(intent)
+            }
+
+            Handler(Looper.getMainLooper()).post {
+                if (this::surfaceProducer.isInitialized) {
+                    // Recreate Video TextureView. Using existing one does not seem to work every time
+                    val data = initAndroidTextureView()
+                    eventHandler.listener.onVideoSizeUpdate(data) {}
+                } else {
+                    playerView.player = player
+                    player.setVideoSurfaceView(playerView.videoSurfaceView as SurfaceView)
+                }
+
+                player.prepare()
             }
         }
     }

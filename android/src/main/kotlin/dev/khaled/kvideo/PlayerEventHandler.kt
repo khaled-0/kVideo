@@ -75,30 +75,16 @@ class PlayerEventHandler(
 
     override fun onPlayerError(error: PlaybackException) {
         super.onPlayerError(error)
-        if (error is ExoPlaybackException && error.message != null) {
-
+        if (error is ExoPlaybackException && error.cause is BehindLiveWindowException) {
             // Retry Live Automatically
-            if (error.cause is BehindLiveWindowException) {
-                player.prepare()
-                player.play()
-                return
-            }
-
-            // Probably Surface re-attachment error, just retry
-            if (error.message!!.contains("Unexpected runtime error")) {
-                if (playerController.isTextureViewMode) {
-                    val data = playerController.initAndroidTextureView()
-                    listener.onVideoSizeUpdate(data) {}
-                }
-
-                player.prepare()
-                player.pause()
-                return
-            }
+            player.prepare()
+            player.play()
+            return
         }
 
         listener.onPlaybackError(error.toString()) {}
     }
+
 
     override fun onAdEvent(event: AdEvent) {
         val isAdPlaying = when (event.type) {
