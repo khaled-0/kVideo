@@ -4,6 +4,7 @@ import android.app.PictureInPictureParams
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.os.Build
+import android.os.Build.VERSION_CODES
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
@@ -21,6 +22,9 @@ class PiPActivity : ComponentActivity() {
     }
 
     private lateinit var playerView: PlayerView
+
+    // In picture-in-picture mode, clicking the X in the upper right corner will trigger `onStop` first.
+    // Clicking the zoom button will not trigger `onStop`.
     var shouldResumeParentActivity = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -28,7 +32,6 @@ class PiPActivity : ComponentActivity() {
         if (!packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)) return finishAndRemoveTask()
 
         window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
-
         playerView = PlayerView(this)
         setContentView(playerView)
 
@@ -39,7 +42,7 @@ class PiPActivity : ComponentActivity() {
             player = controller.player
         }
 
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+        if (Build.VERSION.SDK_INT < VERSION_CODES.O) {
             @Suppress("DEPRECATION") enterPictureInPictureMode()
         } else {
             val params = PictureInPictureParams.Builder()
@@ -54,10 +57,6 @@ class PiPActivity : ComponentActivity() {
         if (isInPictureInPictureMode) PiPManager.notifyPipEnter()
         if (!isInPictureInPictureMode) finishAndRemoveTask()
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
-    }
-
-    override fun onPause() {
-        super.onPause()
     }
 
     override fun onStop() {
@@ -76,21 +75,17 @@ typealias PiPListener = (mode: PiPMode) -> Unit
 
 object PiPManager {
 
-    private val listeners = mutableListOf<PiPListener>()
+    private var listener: PiPListener? = null
 
-    fun addListener(listener: PiPListener) {
-        listeners.add(listener)
-    }
-
-    fun removeListener(listener: PiPListener) {
-        listeners.remove(listener)
+    fun setListener(listener: PiPListener?) {
+        this.listener = listener
     }
 
     fun notifyPipEnter() {
-        listeners.forEach { it.invoke(PiPMode.ACTIVE) }
+        listener?.invoke(PiPMode.ACTIVE)
     }
 
     fun notifyPipExited(shouldResume: Boolean) {
-        listeners.forEach { it.invoke(if (shouldResume) PiPMode.INACTIVE else PiPMode.CLOSED) }
+        listener?.invoke(if (shouldResume) PiPMode.INACTIVE else PiPMode.CLOSED)
     }
 }

@@ -1,7 +1,6 @@
 package dev.khaled.kvideo
 
 import android.app.Activity
-import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
 import android.os.Handler
@@ -195,10 +194,8 @@ class PlayerController(
         player.prepare()
     }
 
-    override fun stop() {
-        player.stop()
-        player.clearMediaItems()
-    }
+    override fun stop() = player.stop()
+
     override fun pause() = player.pause()
     override fun resume() = player.play()
     override fun seekTo(positionMs: Long) = player.seekTo(positionMs)
@@ -237,10 +234,11 @@ class PlayerController(
 
     override fun enterPiPMode() {
         val intent = Intent(context, PiPActivity::class.java)
-        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+        intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         intent.putExtra("id", suffix)
         context.startActivity(intent)
-        PiPManager.addListener(pipListener)
+        PiPManager.setListener(pipListener)
     }
 
     override fun getProgressSecond(): Long = player.currentPosition
@@ -370,7 +368,6 @@ class PlayerController(
         playerView.player = null
         if (this::player.isInitialized) player.release()
         if (this::surfaceProducer.isInitialized) surfaceProducer.surface.release()
-        PiPManager.removeListener(pipListener)
     }
 }
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kvideo/gen/pigeon.g.dart';
 import 'package:kvideo/kvideo.dart';
 
 final controller = PlayerController(androidViewMode: AndroidViewMode.texture);
@@ -30,6 +31,7 @@ final urls = [
   "https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8",
   "https://stream.mux.com/3x5wDUHxkd8NkEfspLUK3OpSQEJe3pom.m3u8?redundant_streams=true",
   "https://storage.googleapis.com/gvabox/media/samples/stock.mp4",
+  "https://download.blender.org/peach/bigbuckbunny_movies/BigBuckBunny_320x180.mp4",
 ];
 
 final ima =
@@ -40,6 +42,16 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   DownloadEventListener.setUp(EventListener());
+
+  controller.state.pipMode.addListener(() {
+    if (controller.state.pipMode.value == PiPMode.closed) {
+      controller.play(null);
+    }
+
+    if (WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) {
+      controller.pause();
+    }
+  });
 
   downloader.removeAll();
 
@@ -189,6 +201,16 @@ class _PlayerScreenState extends State<PlayerScreen> {
               child: ElevatedButton(
                 onPressed: () {
                   controller.play(Media(url: urls[2], imaTagUrl: ima));
+                },
+                child: Text("IMA"),
+              ),
+            ),
+            Positioned(
+              top: 8,
+              left: 8,
+              child: ElevatedButton(
+                onPressed: () {
+                  controller.play(Media(url: urls[3], imaTagUrl: ima));
                 },
                 child: Text("IMA"),
               ),
