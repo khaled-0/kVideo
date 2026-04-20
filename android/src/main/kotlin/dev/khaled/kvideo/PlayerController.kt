@@ -54,6 +54,8 @@ class PlayerController(
     private lateinit var surfaceProducer: TextureRegistry.SurfaceProducer
     private val eventHandler by lazy { PlayerEventHandler(binaryMessenger, suffix, this) }
 
+    fun onUserLeaveHint() = eventHandler.listener.onUserLeaveHint {}
+
 
     private var imaSdkSettings: Lazy<ImaSdkSettings>? = lazy {
         ImaSdkFactory.getInstance().createImaSdkSettings()
@@ -193,7 +195,10 @@ class PlayerController(
         player.prepare()
     }
 
-    override fun stop() = player.stop()
+    override fun stop() {
+        player.stop()
+        player.clearMediaItems()
+    }
     override fun pause() = player.pause()
     override fun resume() = player.play()
     override fun seekTo(positionMs: Long) = player.seekTo(positionMs)

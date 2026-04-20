@@ -65,7 +65,7 @@ class KVideoPlugin : FlutterPlugin, ActivityAware, PlayerInstance, DRMInfoApi {
         controllers[id]?.dispose()
     }
 
-    override fun getWidevineInfo() : WidevineInfo {
+    override fun getWidevineInfo(): WidevineInfo {
         val mediaDrm = MediaDrm(C.WIDEVINE_UUID)
         // https://stackoverflow.com/questions/24892532/drmmanagerclient-acquiredrminfo-is-failing
         return WidevineInfo(
@@ -80,6 +80,11 @@ class KVideoPlugin : FlutterPlugin, ActivityAware, PlayerInstance, DRMInfoApi {
 
     override fun onAttachedToActivity(binding: ActivityPluginBinding) {
         context = binding.activity
+        binding.addOnUserLeaveHintListener {
+            controllers.values.forEach {
+                it.onUserLeaveHint()
+            }
+        }
     }
 
 
