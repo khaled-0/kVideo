@@ -75,11 +75,21 @@ class PlayerEventHandler(
 
     override fun onPlayerError(error: PlaybackException) {
         super.onPlayerError(error)
-        if (error is ExoPlaybackException && error.cause is BehindLiveWindowException) {
+
+        if (error is ExoPlaybackException) {
             // Retry Live Automatically
-            player.prepare()
-            player.play()
-            return
+            if (error.cause is BehindLiveWindowException) {
+                player.prepare()
+                return
+            }
+
+            // Recreate surface if needed
+            error.message?.let {
+                if (it.contains("runtime error") || it.contains("format_supported=YES")) {
+                    playerController.reattachPlayerSurface()
+                    return
+                }
+            }
         }
 
         listener.onPlaybackError(error.toString()) {}

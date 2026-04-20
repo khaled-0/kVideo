@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.annotation.OptIn
 import androidx.media3.common.util.UnstableApi
@@ -20,10 +21,13 @@ class PiPActivity : ComponentActivity() {
     }
 
     private lateinit var playerView: PlayerView
+    var shouldResumeParentActivity = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (!packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)) return finishAndRemoveTask()
+
+        window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
 
         playerView = PlayerView(this)
         setContentView(playerView)
@@ -52,29 +56,41 @@ class PiPActivity : ComponentActivity() {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
     }
 
+    override fun onPause() {
+        super.onPause()
+    }
+
+    override fun onStop() {
+        shouldResumeParentActivity = false
+        super.onStop()
+    }
+
     override fun finishAndRemoveTask() {
         super.finishAndRemoveTask()
         if (::playerView.isInitialized) playerView.player = null
-        PiPManager.notifyPipExited()
+        PiPManager.notifyPipExited(shouldResumeParentActivity)
     }
 }
 
-object PiPManager {
-    private val listeners = mutableListOf<(inPip: Boolean) -> Unit>()
+typealias PiPListener = (mode: PiPMode) -> Unit
 
-    fun addListener(listener: (inPip: Boolean) -> Unit) {
+object PiPManager {
+
+    private val listeners = mutableListOf<PiPListener>()
+
+    fun addListener(listener: PiPListener) {
         listeners.add(listener)
     }
 
-    fun removeListener(listener: (inPip: Boolean) -> Unit) {
+    fun removeListener(listener: PiPListener) {
         listeners.remove(listener)
     }
 
     fun notifyPipEnter() {
-        listeners.forEach { it.invoke(true) }
+        listeners.forEach { it.invoke(PiPMode.ACTIVE) }
     }
 
-    fun notifyPipExited() {
-        listeners.forEach { it.invoke(false) }
+    fun notifyPipExited(shouldResume: Boolean) {
+        listeners.forEach { it.invoke(if (shouldResume) PiPMode.INACTIVE else PiPMode.CLOSED) }
     }
 }

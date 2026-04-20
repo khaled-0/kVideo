@@ -145,6 +145,12 @@ enum BoxFitMode: Int {
   case fit = 1
 }
 
+enum PiPMode: Int {
+  case active = 0
+  case inactive = 1
+  case closed = 2
+}
+
 enum TrackType: Int {
   case audio = 0
   case video = 1
@@ -496,30 +502,36 @@ private class PigeonPigeonCodecReader: FlutterStandardReader {
     case 131:
       let enumResultAsInt: Int? = nilOrValue(self.readValue() as! Int?)
       if let enumResultAsInt = enumResultAsInt {
-        return TrackType(rawValue: enumResultAsInt)
+        return PiPMode(rawValue: enumResultAsInt)
       }
       return nil
     case 132:
       let enumResultAsInt: Int? = nilOrValue(self.readValue() as! Int?)
       if let enumResultAsInt = enumResultAsInt {
-        return DownloadStatus(rawValue: enumResultAsInt)
+        return TrackType(rawValue: enumResultAsInt)
       }
       return nil
     case 133:
-      return VideoTextureData.fromList(self.readValue() as! [Any?])
+      let enumResultAsInt: Int? = nilOrValue(self.readValue() as! Int?)
+      if let enumResultAsInt = enumResultAsInt {
+        return DownloadStatus(rawValue: enumResultAsInt)
+      }
+      return nil
     case 134:
-      return Media.fromList(self.readValue() as! [Any?])
+      return VideoTextureData.fromList(self.readValue() as! [Any?])
     case 135:
-      return PlayerConfiguration.fromList(self.readValue() as! [Any?])
+      return Media.fromList(self.readValue() as! [Any?])
     case 136:
-      return BufferingConfig.fromList(self.readValue() as! [Any?])
+      return PlayerConfiguration.fromList(self.readValue() as! [Any?])
     case 137:
-      return SeekConfig.fromList(self.readValue() as! [Any?])
+      return BufferingConfig.fromList(self.readValue() as! [Any?])
     case 138:
-      return TrackData.fromList(self.readValue() as! [Any?])
+      return SeekConfig.fromList(self.readValue() as! [Any?])
     case 139:
-      return DownloadData.fromList(self.readValue() as! [Any?])
+      return TrackData.fromList(self.readValue() as! [Any?])
     case 140:
+      return DownloadData.fromList(self.readValue() as! [Any?])
+    case 141:
       return WidevineInfo.fromList(self.readValue() as! [Any?])
     default:
       return super.readValue(ofType: type)
@@ -535,35 +547,38 @@ private class PigeonPigeonCodecWriter: FlutterStandardWriter {
     } else if let value = value as? BoxFitMode {
       super.writeByte(130)
       super.writeValue(value.rawValue)
-    } else if let value = value as? TrackType {
+    } else if let value = value as? PiPMode {
       super.writeByte(131)
       super.writeValue(value.rawValue)
-    } else if let value = value as? DownloadStatus {
+    } else if let value = value as? TrackType {
       super.writeByte(132)
       super.writeValue(value.rawValue)
-    } else if let value = value as? VideoTextureData {
+    } else if let value = value as? DownloadStatus {
       super.writeByte(133)
-      super.writeValue(value.toList())
-    } else if let value = value as? Media {
+      super.writeValue(value.rawValue)
+    } else if let value = value as? VideoTextureData {
       super.writeByte(134)
       super.writeValue(value.toList())
-    } else if let value = value as? PlayerConfiguration {
+    } else if let value = value as? Media {
       super.writeByte(135)
       super.writeValue(value.toList())
-    } else if let value = value as? BufferingConfig {
+    } else if let value = value as? PlayerConfiguration {
       super.writeByte(136)
       super.writeValue(value.toList())
-    } else if let value = value as? SeekConfig {
+    } else if let value = value as? BufferingConfig {
       super.writeByte(137)
       super.writeValue(value.toList())
-    } else if let value = value as? TrackData {
+    } else if let value = value as? SeekConfig {
       super.writeByte(138)
       super.writeValue(value.toList())
-    } else if let value = value as? DownloadData {
+    } else if let value = value as? TrackData {
       super.writeByte(139)
       super.writeValue(value.toList())
-    } else if let value = value as? WidevineInfo {
+    } else if let value = value as? DownloadData {
       super.writeByte(140)
+      super.writeValue(value.toList())
+    } else if let value = value as? WidevineInfo {
+      super.writeByte(141)
       super.writeValue(value.toList())
     } else {
       super.writeValue(value)
@@ -952,7 +967,8 @@ protocol PlayerEventListenerProtocol {
   func onIMAStatusChange(showingAd showingAdArg: Bool, completion: @escaping (Result<Void, PigeonError>) -> Void)
   func onTracksLoaded(tracks tracksArg: [TrackData], completion: @escaping (Result<Void, PigeonError>) -> Void)
   func onPlaybackSpeedUpdate(speed speedArg: Double, completion: @escaping (Result<Void, PigeonError>) -> Void)
-  func onPiPModeChange(inPip inPipArg: Bool, completion: @escaping (Result<Void, PigeonError>) -> Void)
+  func onPiPModeChange(mode modeArg: PiPMode, completion: @escaping (Result<Void, PigeonError>) -> Void)
+  func onUserLeaveHint(completion: @escaping (Result<Void, PigeonError>) -> Void)
 }
 class PlayerEventListener: PlayerEventListenerProtocol {
   private let binaryMessenger: FlutterBinaryMessenger
@@ -1127,10 +1143,28 @@ class PlayerEventListener: PlayerEventListenerProtocol {
       }
     }
   }
-  func onPiPModeChange(inPip inPipArg: Bool, completion: @escaping (Result<Void, PigeonError>) -> Void) {
+  func onPiPModeChange(mode modeArg: PiPMode, completion: @escaping (Result<Void, PigeonError>) -> Void) {
     let channelName: String = "dev.flutter.pigeon.kvideo.PlayerEventListener.onPiPModeChange\(messageChannelSuffix)"
     let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
-    channel.sendMessage([inPipArg] as [Any?]) { response in
+    channel.sendMessage([modeArg] as [Any?]) { response in
+      guard let listResponse = response as? [Any?] else {
+        completion(.failure(createConnectionError(withChannelName: channelName)))
+        return
+      }
+      if listResponse.count > 1 {
+        let code: String = listResponse[0] as! String
+        let message: String? = nilOrValue(listResponse[1])
+        let details: String? = nilOrValue(listResponse[2])
+        completion(.failure(PigeonError(code: code, message: message, details: details)))
+      } else {
+        completion(.success(()))
+      }
+    }
+  }
+  func onUserLeaveHint(completion: @escaping (Result<Void, PigeonError>) -> Void) {
+    let channelName: String = "dev.flutter.pigeon.kvideo.PlayerEventListener.onUserLeaveHint\(messageChannelSuffix)"
+    let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
+    channel.sendMessage(nil) { response in
       guard let listResponse = response as? [Any?] else {
         completion(.failure(createConnectionError(withChannelName: channelName)))
         return

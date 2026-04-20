@@ -26,6 +26,8 @@ enum PlaybackStatus { playing, paused, finished, error, preparing }
 
 enum BoxFitMode { fill, fit }
 
+enum PiPMode { active, inactive, closed }
+
 class VideoTextureData {
   int? textureId;
   int? width;
@@ -98,7 +100,9 @@ abstract class PlayerEventListener {
 
   void onPlaybackSpeedUpdate(double speed);
 
-  void onPiPModeChange(bool inPip);
+  void onPiPModeChange(PiPMode mode);
+
+  void onUserLeaveHint();
 }
 
 class Media {

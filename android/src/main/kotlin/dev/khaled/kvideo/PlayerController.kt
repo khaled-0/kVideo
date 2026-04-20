@@ -1,6 +1,7 @@
 package dev.khaled.kvideo
 
 import android.app.Activity
+import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
 import android.os.Handler
@@ -201,33 +202,37 @@ class PlayerController(
     override fun setPlaybackSpeed(speed: Double) = player.setPlaybackSpeed(speed.toFloat())
 
 
-    private val pipListener = { inPip: Boolean ->
-        eventHandler.listener.onPiPModeChange(inPip) {}
-        if (!inPip) {
-            if (context is Activity) {
+    fun reattachPlayerSurface() {
+        Handler(Looper.getMainLooper()).post {
+            if (this::surfaceProducer.isInitialized) {
+                // Recreate Video TextureView. Using existing one does not seem to work every time
+                val data = initAndroidTextureView()
+                eventHandler.listener.onVideoSizeUpdate(data) {}
+            } else {
+                playerView.player = player
+                player.setVideoSurfaceView(playerView.videoSurfaceView as SurfaceView)
+            }
+
+            player.prepare()
+        }
+    }
+
+
+    private val pipListener: PiPListener = { mode: PiPMode ->
+        eventHandler.listener.onPiPModeChange(mode) {}
+        if (mode != PiPMode.ACTIVE) {
+            reattachPlayerSurface()
+            if (context is Activity && mode == PiPMode.INACTIVE) {
                 val intent = Intent(context, context.javaClass)
                 intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
                 context.startActivity(intent)
-            }
-
-            Handler(Looper.getMainLooper()).post {
-                if (this::surfaceProducer.isInitialized) {
-                    // Recreate Video TextureView. Using existing one does not seem to work every time
-                    val data = initAndroidTextureView()
-                    eventHandler.listener.onVideoSizeUpdate(data) {}
-                } else {
-                    playerView.player = player
-                    player.setVideoSurfaceView(playerView.videoSurfaceView as SurfaceView)
-                }
-
-                player.prepare()
             }
         }
     }
 
     override fun enterPiPMode() {
         val intent = Intent(context, PiPActivity::class.java)
-        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
         intent.putExtra("id", suffix)
         context.startActivity(intent)
         PiPManager.addListener(pipListener)

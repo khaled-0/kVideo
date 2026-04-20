@@ -52,6 +52,12 @@ enum BoxFitMode {
   fit,
 }
 
+enum PiPMode {
+  active,
+  inactive,
+  closed,
+}
+
 enum TrackType {
   audio,
   video,
@@ -555,35 +561,38 @@ class _PigeonCodec extends StandardMessageCodec {
     }    else if (value is BoxFitMode) {
       buffer.putUint8(130);
       writeValue(buffer, value.index);
-    }    else if (value is TrackType) {
+    }    else if (value is PiPMode) {
       buffer.putUint8(131);
       writeValue(buffer, value.index);
-    }    else if (value is DownloadStatus) {
+    }    else if (value is TrackType) {
       buffer.putUint8(132);
       writeValue(buffer, value.index);
-    }    else if (value is VideoTextureData) {
+    }    else if (value is DownloadStatus) {
       buffer.putUint8(133);
-      writeValue(buffer, value.encode());
-    }    else if (value is Media) {
+      writeValue(buffer, value.index);
+    }    else if (value is VideoTextureData) {
       buffer.putUint8(134);
       writeValue(buffer, value.encode());
-    }    else if (value is PlayerConfiguration) {
+    }    else if (value is Media) {
       buffer.putUint8(135);
       writeValue(buffer, value.encode());
-    }    else if (value is BufferingConfig) {
+    }    else if (value is PlayerConfiguration) {
       buffer.putUint8(136);
       writeValue(buffer, value.encode());
-    }    else if (value is SeekConfig) {
+    }    else if (value is BufferingConfig) {
       buffer.putUint8(137);
       writeValue(buffer, value.encode());
-    }    else if (value is TrackData) {
+    }    else if (value is SeekConfig) {
       buffer.putUint8(138);
       writeValue(buffer, value.encode());
-    }    else if (value is DownloadData) {
+    }    else if (value is TrackData) {
       buffer.putUint8(139);
       writeValue(buffer, value.encode());
-    }    else if (value is WidevineInfo) {
+    }    else if (value is DownloadData) {
       buffer.putUint8(140);
+      writeValue(buffer, value.encode());
+    }    else if (value is WidevineInfo) {
+      buffer.putUint8(141);
       writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
@@ -601,25 +610,28 @@ class _PigeonCodec extends StandardMessageCodec {
         return value == null ? null : BoxFitMode.values[value];
       case 131: 
         final int? value = readValue(buffer) as int?;
-        return value == null ? null : TrackType.values[value];
+        return value == null ? null : PiPMode.values[value];
       case 132: 
         final int? value = readValue(buffer) as int?;
-        return value == null ? null : DownloadStatus.values[value];
+        return value == null ? null : TrackType.values[value];
       case 133: 
-        return VideoTextureData.decode(readValue(buffer)!);
+        final int? value = readValue(buffer) as int?;
+        return value == null ? null : DownloadStatus.values[value];
       case 134: 
-        return Media.decode(readValue(buffer)!);
+        return VideoTextureData.decode(readValue(buffer)!);
       case 135: 
-        return PlayerConfiguration.decode(readValue(buffer)!);
+        return Media.decode(readValue(buffer)!);
       case 136: 
-        return BufferingConfig.decode(readValue(buffer)!);
+        return PlayerConfiguration.decode(readValue(buffer)!);
       case 137: 
-        return SeekConfig.decode(readValue(buffer)!);
+        return BufferingConfig.decode(readValue(buffer)!);
       case 138: 
-        return TrackData.decode(readValue(buffer)!);
+        return SeekConfig.decode(readValue(buffer)!);
       case 139: 
-        return DownloadData.decode(readValue(buffer)!);
+        return TrackData.decode(readValue(buffer)!);
       case 140: 
+        return DownloadData.decode(readValue(buffer)!);
+      case 141: 
         return WidevineInfo.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
@@ -1222,7 +1234,9 @@ abstract class PlayerEventListener {
 
   void onPlaybackSpeedUpdate(double speed);
 
-  void onPiPModeChange(bool inPip);
+  void onPiPModeChange(PiPMode mode);
+
+  void onUserLeaveHint();
 
   static void setUp(PlayerEventListener? api, {BinaryMessenger? binaryMessenger, String messageChannelSuffix = '',}) {
     messageChannelSuffix = messageChannelSuffix.isNotEmpty ? '.$messageChannelSuffix' : '';
@@ -1462,11 +1476,30 @@ abstract class PlayerEventListener {
           assert(message != null,
           'Argument for dev.flutter.pigeon.kvideo.PlayerEventListener.onPiPModeChange was null.');
           final List<Object?> args = (message as List<Object?>?)!;
-          final bool? arg_inPip = (args[0] as bool?);
-          assert(arg_inPip != null,
-              'Argument for dev.flutter.pigeon.kvideo.PlayerEventListener.onPiPModeChange was null, expected non-null bool.');
+          final PiPMode? arg_mode = (args[0] as PiPMode?);
+          assert(arg_mode != null,
+              'Argument for dev.flutter.pigeon.kvideo.PlayerEventListener.onPiPModeChange was null, expected non-null PiPMode.');
           try {
-            api.onPiPModeChange(arg_inPip!);
+            api.onPiPModeChange(arg_mode!);
+            return wrapResponse(empty: true);
+          } on PlatformException catch (e) {
+            return wrapResponse(error: e);
+          }          catch (e) {
+            return wrapResponse(error: PlatformException(code: 'error', message: e.toString()));
+          }
+        });
+      }
+    }
+    {
+      final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
+          'dev.flutter.pigeon.kvideo.PlayerEventListener.onUserLeaveHint$messageChannelSuffix', pigeonChannelCodec,
+          binaryMessenger: binaryMessenger);
+      if (api == null) {
+        pigeonVar_channel.setMessageHandler(null);
+      } else {
+        pigeonVar_channel.setMessageHandler((Object? message) async {
+          try {
+            api.onUserLeaveHint();
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);

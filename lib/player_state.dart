@@ -22,7 +22,7 @@ class PlayerState implements PlayerEventListener {
   final ValueNotifier<double> speed = ValueNotifier(1.0);
   final ValueNotifier<List<TrackData>> tracks = ValueNotifier([]);
 
-  final ValueNotifier<bool> pipMode = ValueNotifier(false);
+  final ValueNotifier<PiPMode> pipMode = ValueNotifier(PiPMode.closed);
 
   final ValueNotifier<bool> ima = ValueNotifier(false);
 
@@ -83,7 +83,7 @@ class PlayerState implements PlayerEventListener {
   }
 
   @override
-  void onPiPModeChange(bool inPip) {
-    pipMode.value = inPip;
+  void onPiPModeChange(PiPMode mode) {
+    pipMode.value = mode;
   }
 }

@@ -552,12 +552,12 @@ extension PlayerController {
     public func pictureInPictureControllerWillStartPictureInPicture(
         _ pictureInPictureController: AVPictureInPictureController
     ) {
-        self.eventHandler.listener.onPiPModeChange(inPip: true) { _ in }
+        self.eventHandler.listener.onPiPModeChange(mode: PiPMode.active) { _ in }
     }
 
     public func pictureInPictureControllerDidStopPictureInPicture(
         _ pictureInPictureController: AVPictureInPictureController
     ) {
-        self.eventHandler.listener.onPiPModeChange(inPip: false) { _ in }
+        self.eventHandler.listener.onPiPModeChange(mode: PiPMode.inactive) { _ in }
     }
 }
