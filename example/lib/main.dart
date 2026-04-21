@@ -48,9 +48,9 @@ void main() async {
       controller.play(null);
     }
 
-    if (WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) {
-      controller.pause();
-    }
+    // if (WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) {
+    //   controller.pause();
+    // }
   });
 
   downloader.removeAll();

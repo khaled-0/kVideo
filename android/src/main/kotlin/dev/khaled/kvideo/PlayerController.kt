@@ -1,6 +1,5 @@
 package dev.khaled.kvideo
 
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.os.Handler
@@ -194,7 +193,11 @@ class PlayerController(
         player.prepare()
     }
 
-    override fun stop() = player.stop()
+    override fun stop() {
+        player.clearMediaItems()
+        player.playWhenReady = false
+        player.stop()
+    }
 
     override fun pause() = player.pause()
     override fun resume() = player.play()
@@ -222,14 +225,7 @@ class PlayerController(
 
     private val pipListener: PiPListener = { mode: PiPMode ->
         eventHandler.listener.onPiPModeChange(mode) {}
-        if (mode != PiPMode.ACTIVE) {
-            reattachPlayerSurface()
-            if (context is Activity && mode == PiPMode.INACTIVE) {
-                val intent = Intent(context, context.javaClass)
-                intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
-                context.startActivity(intent)
-            }
-        }
+        if (mode != PiPMode.ACTIVE) reattachPlayerSurface()
     }
 
     override fun enterPiPMode() {
