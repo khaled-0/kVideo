@@ -81,6 +81,7 @@ class PlayerController(
         }
 
         val factory = DefaultRenderersFactory(context).setEnableDecoderFallback(true)
+        if (this::player.isInitialized) player.release()
         player = ExoPlayer.Builder(context, factory).apply {
             configuration?.bufferingConfig?.let {
                 setLoadControl(
