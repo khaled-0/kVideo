@@ -38,8 +38,6 @@ class KVideoPlugin : FlutterPlugin, ActivityAware, PlayerInstance, DRMInfoApi {
         textureRegistry = flutterPluginBinding.textureRegistry
 
         PlayerInstance.setUp(binaryMessenger, this)
-        controllers.keys.forEach { dispose(it) }
-        controllers.clear()
 
         flutterPluginBinding.platformViewRegistry.registerViewFactory(
             "dev.khaled.kvideo", PlayerFactory(
@@ -53,7 +51,6 @@ class KVideoPlugin : FlutterPlugin, ActivityAware, PlayerInstance, DRMInfoApi {
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         controllers.keys.forEach { dispose(it) }
-        controllers.clear()
     }
 
     override fun create(id: String) {
@@ -63,6 +60,7 @@ class KVideoPlugin : FlutterPlugin, ActivityAware, PlayerInstance, DRMInfoApi {
 
     override fun dispose(id: String) {
         controllers[id]?.dispose()
+        controllers.remove(id)
     }
 
     override fun getWidevineInfo(): WidevineInfo {

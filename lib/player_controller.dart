@@ -110,8 +110,8 @@ class PlayerController {
   }
 
   Future<void> dispose() {
-    _instanceManager.dispose(id);
+    _api.dispose();
     PlayerEventListener.setUp(null, messageChannelSuffix: id);
-    return _api.dispose();
+    return _instanceManager.dispose(id);
   }
 }
