@@ -147,10 +147,15 @@ class PlayerConfiguration {
 }
 
 class BufferingConfig {
+  final int? minPlaybackBufferMs;
   final int? minBufferMs;
   final int? maxBufferMs;
 
-  BufferingConfig({this.minBufferMs, this.maxBufferMs});
+  BufferingConfig({
+    this.minBufferMs,
+    this.maxBufferMs,
+    this.minPlaybackBufferMs,
+  });
 }
 
 class SeekConfig {

@@ -43,6 +43,10 @@ void main() async {
 
   DownloadEventListener.setUp(EventListener());
 
+  controller.state.buffer.addListener(() {
+    print(controller.state.buffer.value.inSeconds);
+  });
+
   controller.state.pipMode.addListener(() {
     if (controller.state.pipMode.value == PiPMode.closed) {
       controller.play(null);
@@ -62,7 +66,12 @@ void main() async {
   // print(id);
 
   controller
-      .initialize(configuration: PlayerConfiguration(initializeIMA: true))
+      .initialize(
+        configuration: PlayerConfiguration(
+          initializeIMA: true,
+          bufferingConfig: BufferingConfig(minBufferMs: 1000_000_0),
+        ),
+      )
       .then((_) {
         // controller.play(
         //   Media(
@@ -94,7 +103,12 @@ class _PlayerScreenState extends State<PlayerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("kVideo")),
+      appBar: AppBar(
+        title: const Text("kVideo"),
+        actions: [
+          IconButton(onPressed: controller.dispose, icon: Text("dispose")),
+        ],
+      ),
       body: GestureDetector(
         child: Stack(
           children: [

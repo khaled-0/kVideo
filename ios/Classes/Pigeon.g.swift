@@ -289,22 +289,26 @@ struct PlayerConfiguration: Hashable {
 
 /// Generated class from Pigeon that represents data sent in messages.
 struct BufferingConfig: Hashable {
+  var minPlaybackBufferMs: Int64? = nil
   var minBufferMs: Int64? = nil
   var maxBufferMs: Int64? = nil
 
 
   // swift-format-ignore: AlwaysUseLowerCamelCase
   static func fromList(_ pigeonVar_list: [Any?]) -> BufferingConfig? {
-    let minBufferMs: Int64? = nilOrValue(pigeonVar_list[0])
-    let maxBufferMs: Int64? = nilOrValue(pigeonVar_list[1])
+    let minPlaybackBufferMs: Int64? = nilOrValue(pigeonVar_list[0])
+    let minBufferMs: Int64? = nilOrValue(pigeonVar_list[1])
+    let maxBufferMs: Int64? = nilOrValue(pigeonVar_list[2])
 
     return BufferingConfig(
+      minPlaybackBufferMs: minPlaybackBufferMs,
       minBufferMs: minBufferMs,
       maxBufferMs: maxBufferMs
     )
   }
   func toList() -> [Any?] {
     return [
+      minPlaybackBufferMs,
       minBufferMs,
       maxBufferMs,
     ]

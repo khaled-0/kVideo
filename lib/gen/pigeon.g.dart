@@ -254,9 +254,12 @@ class PlayerConfiguration {
 
 class BufferingConfig {
   BufferingConfig({
+    this.minPlaybackBufferMs,
     this.minBufferMs,
     this.maxBufferMs,
   });
+
+  int? minPlaybackBufferMs;
 
   int? minBufferMs;
 
@@ -264,6 +267,7 @@ class BufferingConfig {
 
   List<Object?> _toList() {
     return <Object?>[
+      minPlaybackBufferMs,
       minBufferMs,
       maxBufferMs,
     ];
@@ -275,8 +279,9 @@ class BufferingConfig {
   static BufferingConfig decode(Object result) {
     result as List<Object?>;
     return BufferingConfig(
-      minBufferMs: result[0] as int?,
-      maxBufferMs: result[1] as int?,
+      minPlaybackBufferMs: result[0] as int?,
+      minBufferMs: result[1] as int?,
+      maxBufferMs: result[2] as int?,
     );
   }
 

@@ -88,8 +88,8 @@ class PlayerController(
                     DefaultLoadControl.Builder().setBufferDurationsMs(
                         it.minBufferMs?.toInt() ?: DefaultLoadControl.DEFAULT_MIN_BUFFER_MS,
                         it.maxBufferMs?.toInt() ?: DefaultLoadControl.DEFAULT_MAX_BUFFER_MS,
-                        DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_MS,
-                        DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS,
+                        it.minPlaybackBufferMs?.toInt() ?: DefaultLoadControl.DEFAULT_MIN_BUFFER_MS,
+                        it.minPlaybackBufferMs?.toInt() ?: DefaultLoadControl.DEFAULT_MIN_BUFFER_MS,
                     ).build()
                 )
             }

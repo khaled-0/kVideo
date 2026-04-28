@@ -267,19 +267,22 @@ data class PlayerConfiguration (
 
 /** Generated class from Pigeon that represents data sent in messages. */
 data class BufferingConfig (
+  val minPlaybackBufferMs: Long? = null,
   val minBufferMs: Long? = null,
   val maxBufferMs: Long? = null
 )
  {
   companion object {
     fun fromList(pigeonVar_list: List<Any?>): BufferingConfig {
-      val minBufferMs = pigeonVar_list[0] as Long?
-      val maxBufferMs = pigeonVar_list[1] as Long?
-      return BufferingConfig(minBufferMs, maxBufferMs)
+      val minPlaybackBufferMs = pigeonVar_list[0] as Long?
+      val minBufferMs = pigeonVar_list[1] as Long?
+      val maxBufferMs = pigeonVar_list[2] as Long?
+      return BufferingConfig(minPlaybackBufferMs, minBufferMs, maxBufferMs)
     }
   }
   fun toList(): List<Any?> {
     return listOf(
+      minPlaybackBufferMs,
       minBufferMs,
       maxBufferMs,
     )

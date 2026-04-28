@@ -36,6 +36,9 @@ public class PlayerController: NSObject, FlutterPlatformView,
 
     private var pipController: AVPictureInPictureController?
 
+    // We have to store it because AVPlayer does not have exo like configuration
+    private var kConfig: PlayerConfiguration?
+
     // ---------------------------------------------------------------------
     // MARK: - IMA
     // ---------------------------------------------------------------------
@@ -80,7 +83,8 @@ public class PlayerController: NSObject, FlutterPlatformView,
     // ---------------------------------------------------------------------
 
     func initialize(configuration: PlayerConfiguration?) throws {
-        // TODO: AVPlayer has different buffering & seek config than ExoPlayer
+        kConfig = configuration
+
         // Apply some analogous configuration where applicable
         player.audiovisualBackgroundPlaybackPolicy = .continuesIfPossible
         player.automaticallyWaitsToMinimizeStalling = true
@@ -153,6 +157,13 @@ public class PlayerController: NSObject, FlutterPlatformView,
             self.playerItem!.seek(to: cm, completionHandler: nil)
         }
 
+        // Set max buffer config
+        if let maxBufferMs = kConfig?.bufferingConfig?.maxBufferMs {
+            self.playerItem?.preferredForwardBufferDuration = Double(
+                maxBufferMs / 1000
+            )
+        }
+
         player.replaceCurrentItem(with: self.playerItem)
         self.player.play()
 
@@ -172,13 +183,18 @@ public class PlayerController: NSObject, FlutterPlatformView,
     }
     func seekForward() throws {
         let p = player.currentTime()
-        let cm = CMTime(seconds: p.seconds + 10, preferredTimescale: 1000)
+        let to = (kConfig?.seekConfig?.seekForwardMs ?? 10_000) / 1000
+        let cm = CMTime(
+            seconds: p.seconds + Double(to),
+            preferredTimescale: p.timescale
+        )
         player.seek(to: cm)
     }
     func seekBack() throws {
         let p = player.currentTime()
+        let to = (kConfig?.seekConfig?.seekBackMs ?? 10_000) / 1000
         let cm = CMTime(
-            seconds: max(0, p.seconds - 10),
+            seconds: max(0, p.seconds - Double(to)),
             preferredTimescale: 1000
         )
         player.seek(to: cm)
@@ -552,12 +568,15 @@ extension PlayerController {
     public func pictureInPictureControllerWillStartPictureInPicture(
         _ pictureInPictureController: AVPictureInPictureController
     ) {
-        self.eventHandler.listener.onPiPModeChange(mode: PiPMode.active) { _ in }
+        self.eventHandler.listener.onPiPModeChange(mode: PiPMode.active) { _ in
+        }
     }
 
     public func pictureInPictureControllerDidStopPictureInPicture(
         _ pictureInPictureController: AVPictureInPictureController
     ) {
-        self.eventHandler.listener.onPiPModeChange(mode: PiPMode.inactive) { _ in }
+        self.eventHandler.listener.onPiPModeChange(mode: PiPMode.inactive) {
+            _ in
+        }
     }
 }
