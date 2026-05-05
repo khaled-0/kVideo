@@ -16,7 +16,9 @@ import androidx.media3.common.Player
 import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.util.Log
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.AssetDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.datasource.FileDataSource
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
@@ -145,10 +147,15 @@ class PlayerController(
 
 
         val dataSourceFactory = CacheDataSource.Factory().setCache(KDownloadManager.cache(context))
-            .setCacheWriteDataSinkFactory(null)
-            .setUpstreamDataSourceFactory(DefaultHttpDataSource.Factory().apply {
-                setDefaultRequestProperties(headers)
-            })
+            .setCacheWriteDataSinkFactory(null).setUpstreamDataSourceFactory {
+                if (media.url.startsWith("asset://")) AssetDataSource(context)
+                else if (media.url.startsWith("file://") || media.url.startsWith("/")) FileDataSource.Factory()
+                    .createDataSource()
+                else DefaultHttpDataSource.Factory().apply {
+                    setDefaultRequestProperties(headers)
+                }.createDataSource()
+            }
+
 
         val mediaSourceFactory = DefaultMediaSourceFactory(context).apply {
             setDataSourceFactory(dataSourceFactory)
