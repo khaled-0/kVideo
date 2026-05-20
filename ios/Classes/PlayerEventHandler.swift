@@ -42,7 +42,6 @@ class PlayerEventHandler {
     deinit { removeObservers() }
 
     func removeObservers() {
-        let player = controller.player
 
         if let timeObserver = self.timeObserver {
             controller.player.removeTimeObserver(timeObserver)

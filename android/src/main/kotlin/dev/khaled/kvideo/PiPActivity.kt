@@ -1,5 +1,6 @@
 package dev.khaled.kvideo
 
+import android.app.ActivityManager
 import android.app.PictureInPictureParams
 import android.app.Service
 import android.content.ComponentName
@@ -12,7 +13,6 @@ import android.os.Build
 import android.os.Build.VERSION_CODES
 import android.os.Bundle
 import android.os.IBinder
-import android.view.View
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.annotation.OptIn
@@ -72,7 +72,7 @@ class PiPActivity : ComponentActivity(), ServiceConnection {
         isInPictureInPictureMode: Boolean, newConfig: Configuration
     ) {
         if (isInPictureInPictureMode) PiPManager.notifyPipEnter()
-        if (!isInPictureInPictureMode) notifyPiPToExit()
+        if (!isInPictureInPictureMode) signalPiPToClose()
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
     }
 
@@ -94,16 +94,18 @@ class PiPActivity : ComponentActivity(), ServiceConnection {
 
     // Due to the foreground service startup restriction in Android 12, if the activity interface is closed
     // too early after returning from picture-in-picture mode, the app cannot be launched normally.
-    private fun notifyPiPToExit() {
+    private fun signalPiPToClose() {
         if (isDestroyed || isFinishing) return
-        if (::playerView.isInitialized) playerView.player = null
-
-        PiPManager.notifyPipExited(shouldResumeParentActivity)
-        playerView.visibility = View.GONE
         val intent = Intent(this, this.javaClass)
         intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
         intent.setAction(ACTION_STOP_PIP)
         startActivity(intent)
+    }
+
+    override fun finishAndRemoveTask() {
+        super.finishAndRemoveTask()
+        if (::playerView.isInitialized) playerView.player = null
+        PiPManager.notifyPipExited(shouldResumeParentActivity)
     }
 
     override fun onDestroy() {
@@ -113,7 +115,20 @@ class PiPActivity : ComponentActivity(), ServiceConnection {
             val serviceIntent = Intent(applicationContext, Android12PiPService::class.java)
             stopService(serviceIntent)
         }
+
+        // iterate app tasks available and navigate to launcher task (browse task)
+        val activityManager = baseContext.getSystemService(ACTIVITY_SERVICE) as ActivityManager
+        val appTasks = activityManager.appTasks
+        for (task in appTasks) {
+            val baseIntent = task.taskInfo.baseIntent
+            val categories = baseIntent.categories
+            if (categories != null && categories.contains(Intent.CATEGORY_LAUNCHER)) {
+                task.moveToFront()
+                return
+            }
+        }
     }
+
 
     override fun onServiceConnected(p0: ComponentName?, p1: IBinder?) {}
 

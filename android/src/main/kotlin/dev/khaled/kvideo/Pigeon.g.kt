@@ -107,9 +107,10 @@ enum class BoxFitMode(val raw: Int) {
 }
 
 enum class PiPMode(val raw: Int) {
-  ACTIVE(0),
-  INACTIVE(1),
-  CLOSED(2);
+  PARENT(0),
+  ACTIVE(1),
+  INACTIVE(2),
+  CLOSED(3);
 
   companion object {
     fun ofRaw(raw: Int): PiPMode? {
@@ -602,6 +603,8 @@ private open class PigeonPigeonCodec : StandardMessageCodec() {
 interface PlayerInstance {
   fun create(id: String)
   fun dispose(id: String)
+  /** Android Only */
+  fun setAutoEnterPiPMode(value: Boolean)
 
   companion object {
     /** The codec used by PlayerInstance. */
@@ -638,6 +641,24 @@ interface PlayerInstance {
             val idArg = args[0] as String
             val wrapped: List<Any?> = try {
               api.dispose(idArg)
+              listOf(null)
+            } catch (exception: Throwable) {
+              PigeonPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.kvideo.PlayerInstance.setAutoEnterPiPMode$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val valueArg = args[0] as Boolean
+            val wrapped: List<Any?> = try {
+              api.setAutoEnterPiPMode(valueArg)
               listOf(null)
             } catch (exception: Throwable) {
               PigeonPigeonUtils.wrapError(exception)
@@ -1180,23 +1201,6 @@ class PlayerEventListener(private val binaryMessenger: BinaryMessenger, private 
     val channelName = "dev.flutter.pigeon.kvideo.PlayerEventListener.onPiPModeChange$separatedMessageChannelSuffix"
     val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
     channel.send(listOf(modeArg)) {
-      if (it is List<*>) {
-        if (it.size > 1) {
-          callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))
-        } else {
-          callback(Result.success(Unit))
-        }
-      } else {
-        callback(Result.failure(PigeonPigeonUtils.createConnectionError(channelName)))
-      } 
-    }
-  }
-  fun onUserLeaveHint(callback: (Result<Unit>) -> Unit)
-{
-    val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
-    val channelName = "dev.flutter.pigeon.kvideo.PlayerEventListener.onUserLeaveHint$separatedMessageChannelSuffix"
-    val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
-    channel.send(null) {
       if (it is List<*>) {
         if (it.size > 1) {
           callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))

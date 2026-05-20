@@ -146,9 +146,10 @@ enum BoxFitMode: Int {
 }
 
 enum PiPMode: Int {
-  case active = 0
-  case inactive = 1
-  case closed = 2
+  case parent = 0
+  case active = 1
+  case inactive = 2
+  case closed = 3
 }
 
 enum TrackType: Int {
@@ -613,6 +614,8 @@ class PigeonPigeonCodec: FlutterStandardMessageCodec, @unchecked Sendable {
 protocol PlayerInstance {
   func create(id: String) throws
   func dispose(id: String) throws
+  /// Android Only
+  func setAutoEnterPiPMode(value: Bool) throws
 }
 
 /// Generated setup class from Pigeon to handle messages through the `binaryMessenger`.
@@ -650,6 +653,22 @@ class PlayerInstanceSetup {
       }
     } else {
       disposeChannel.setMessageHandler(nil)
+    }
+    /// Android Only
+    let setAutoEnterPiPModeChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.kvideo.PlayerInstance.setAutoEnterPiPMode\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      setAutoEnterPiPModeChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let valueArg = args[0] as! Bool
+        do {
+          try api.setAutoEnterPiPMode(value: valueArg)
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      setAutoEnterPiPModeChannel.setMessageHandler(nil)
     }
   }
 }
@@ -972,7 +991,6 @@ protocol PlayerEventListenerProtocol {
   func onTracksLoaded(tracks tracksArg: [TrackData], completion: @escaping (Result<Void, PigeonError>) -> Void)
   func onPlaybackSpeedUpdate(speed speedArg: Double, completion: @escaping (Result<Void, PigeonError>) -> Void)
   func onPiPModeChange(mode modeArg: PiPMode, completion: @escaping (Result<Void, PigeonError>) -> Void)
-  func onUserLeaveHint(completion: @escaping (Result<Void, PigeonError>) -> Void)
 }
 class PlayerEventListener: PlayerEventListenerProtocol {
   private let binaryMessenger: FlutterBinaryMessenger
@@ -1151,24 +1169,6 @@ class PlayerEventListener: PlayerEventListenerProtocol {
     let channelName: String = "dev.flutter.pigeon.kvideo.PlayerEventListener.onPiPModeChange\(messageChannelSuffix)"
     let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
     channel.sendMessage([modeArg] as [Any?]) { response in
-      guard let listResponse = response as? [Any?] else {
-        completion(.failure(createConnectionError(withChannelName: channelName)))
-        return
-      }
-      if listResponse.count > 1 {
-        let code: String = listResponse[0] as! String
-        let message: String? = nilOrValue(listResponse[1])
-        let details: String? = nilOrValue(listResponse[2])
-        completion(.failure(PigeonError(code: code, message: message, details: details)))
-      } else {
-        completion(.success(()))
-      }
-    }
-  }
-  func onUserLeaveHint(completion: @escaping (Result<Void, PigeonError>) -> Void) {
-    let channelName: String = "dev.flutter.pigeon.kvideo.PlayerEventListener.onUserLeaveHint\(messageChannelSuffix)"
-    let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
-    channel.sendMessage(nil) { response in
       guard let listResponse = response as? [Any?] else {
         completion(.failure(createConnectionError(withChannelName: channelName)))
         return

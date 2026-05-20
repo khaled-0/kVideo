@@ -12,8 +12,9 @@
             android:exported="true"
             android:hardwareAccelerated="true"
             android:launchMode="singleTop"
-            android:taskAffinity="${applicationId}"
+            android:taskAffinity=""
             android:theme="@style/LaunchTheme"
+            android:supportsPictureInPicture="true"
             android:windowSoftInputMode="adjustResize">
             <!-- Specifies an Android theme to apply to this Activity as soon as
                  the Android process has started. This theme is visible to the user
@@ -32,9 +33,6 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
-        <activity
-            android:name="dev.khaled.kvideo.PiPActivity"
-            android:taskAffinity="${applicationId}" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

@@ -1,11 +1,14 @@
 package dev.khaled.kvideo
 
+import android.app.PictureInPictureParams
 import android.content.Context
 import android.media.MediaDrm
 import android.media.MediaDrm.PROPERTY_ALGORITHMS
 import android.media.MediaDrm.PROPERTY_DESCRIPTION
 import android.media.MediaDrm.PROPERTY_VENDOR
 import android.media.MediaDrm.PROPERTY_VERSION
+import android.os.Build
+import android.os.Build.VERSION_CODES
 import android.view.View
 import androidx.annotation.OptIn
 import androidx.media3.common.C
@@ -15,13 +18,14 @@ import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.BinaryMessenger
+import io.flutter.plugin.common.PluginRegistry
 import io.flutter.plugin.platform.PlatformView
 import io.flutter.plugin.platform.PlatformViewFactory
 import io.flutter.view.TextureRegistry
-import kotlin.String
 
 
-class KVideoPlugin : FlutterPlugin, ActivityAware, PlayerInstance, DRMInfoApi {
+class KVideoPlugin : FlutterPlugin, ActivityAware, PlayerInstance, DRMInfoApi,
+    PluginRegistry.UserLeaveHintListener {
 
     companion object {
         val controllers = mutableMapOf<String, PlayerController>()
@@ -30,6 +34,8 @@ class KVideoPlugin : FlutterPlugin, ActivityAware, PlayerInstance, DRMInfoApi {
     private lateinit var context: Context
     private lateinit var binaryMessenger: BinaryMessenger
     private lateinit var textureRegistry: TextureRegistry
+
+    private var activityPluginBinding: ActivityPluginBinding? = null
 
 
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
@@ -49,9 +55,7 @@ class KVideoPlugin : FlutterPlugin, ActivityAware, PlayerInstance, DRMInfoApi {
         DRMInfoApi.setUp(binaryMessenger, this)
     }
 
-    override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
-        controllers.keys.forEach { dispose(it) }
-    }
+    override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {}
 
     override fun create(id: String) {
         controllers[id]?.dispose()
@@ -76,22 +80,43 @@ class KVideoPlugin : FlutterPlugin, ActivityAware, PlayerInstance, DRMInfoApi {
         )
     }
 
-    override fun onAttachedToActivity(binding: ActivityPluginBinding) {
-        context = binding.activity
-        binding.addOnUserLeaveHintListener {
-            controllers.values.forEach {
-                it.onUserLeaveHint()
+    override fun setAutoEnterPiPMode(value: Boolean) {
+        activityPluginBinding?.let {
+            if (value) {
+                it.addOnUserLeaveHintListener(this)
+            } else {
+                it.removeOnUserLeaveHintListener(this)
             }
         }
     }
 
+    override fun onAttachedToActivity(binding: ActivityPluginBinding) {
+        activityPluginBinding = binding
+    }
 
     override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
-        context = binding.activity
+        activityPluginBinding = binding
     }
 
     override fun onDetachedFromActivityForConfigChanges() {}
-    override fun onDetachedFromActivity() {}
+    override fun onDetachedFromActivity() {
+        activityPluginBinding = null
+    }
+
+
+    override fun onUserLeaveHint() {
+        val activity = activityPluginBinding?.activity
+        if (Build.VERSION.SDK_INT < VERSION_CODES.O) {
+            @Suppress("DEPRECATION") activity?.enterPictureInPictureMode()
+        } else {
+            val params = PictureInPictureParams.Builder()
+            activity?.enterPictureInPictureMode(params.build())
+        }
+
+        controllers.values.forEach {
+            it.pipListener.invoke(PiPMode.PARENT)
+        }
+    }
 }
 
 private class PlayerFactory(

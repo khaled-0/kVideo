@@ -38,6 +38,7 @@ import com.google.ads.interactivemedia.v3.api.ImaSdkFactory
 import com.google.ads.interactivemedia.v3.api.ImaSdkSettings
 import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.view.TextureRegistry
+import kotlin.getValue
 
 
 @OptIn(UnstableApi::class)
@@ -53,9 +54,6 @@ class PlayerController(
 
     private lateinit var surfaceProducer: TextureRegistry.SurfaceProducer
     private val eventHandler by lazy { PlayerEventHandler(binaryMessenger, suffix, this) }
-
-    fun onUserLeaveHint() = eventHandler.listener.onUserLeaveHint {}
-
 
     private var imaSdkSettings: Lazy<ImaSdkSettings>? = lazy {
         ImaSdkFactory.getInstance().createImaSdkSettings()
@@ -231,9 +229,9 @@ class PlayerController(
     }
 
 
-    private val pipListener: PiPListener = { mode: PiPMode ->
+    val pipListener: PiPListener = { mode: PiPMode ->
         eventHandler.listener.onPiPModeChange(mode) {}
-        if (mode != PiPMode.ACTIVE) reattachPlayerSurface()
+        if (arrayOf(PiPMode.CLOSED, PiPMode.INACTIVE).contains(mode)) reattachPlayerSurface()
     }
 
     override fun enterPiPMode() {

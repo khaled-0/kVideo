@@ -53,6 +53,7 @@ enum BoxFitMode {
 }
 
 enum PiPMode {
+  parent,
   active,
   inactive,
   closed,
@@ -705,6 +706,30 @@ class PlayerInstance {
       return;
     }
   }
+
+  /// Android Only
+  Future<void> setAutoEnterPiPMode(bool value) async {
+    final String pigeonVar_channelName = 'dev.flutter.pigeon.kvideo.PlayerInstance.setAutoEnterPiPMode$pigeonVar_messageChannelSuffix';
+    final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[value]);
+    final List<Object?>? pigeonVar_replyList =
+        await pigeonVar_sendFuture as List<Object?>?;
+    if (pigeonVar_replyList == null) {
+      throw _createConnectionError(pigeonVar_channelName);
+    } else if (pigeonVar_replyList.length > 1) {
+      throw PlatformException(
+        code: pigeonVar_replyList[0]! as String,
+        message: pigeonVar_replyList[1] as String?,
+        details: pigeonVar_replyList[2],
+      );
+    } else {
+      return;
+    }
+  }
 }
 
 class PlayerControllerApi {
@@ -1241,8 +1266,6 @@ abstract class PlayerEventListener {
 
   void onPiPModeChange(PiPMode mode);
 
-  void onUserLeaveHint();
-
   static void setUp(PlayerEventListener? api, {BinaryMessenger? binaryMessenger, String messageChannelSuffix = '',}) {
     messageChannelSuffix = messageChannelSuffix.isNotEmpty ? '.$messageChannelSuffix' : '';
     {
@@ -1486,25 +1509,6 @@ abstract class PlayerEventListener {
               'Argument for dev.flutter.pigeon.kvideo.PlayerEventListener.onPiPModeChange was null, expected non-null PiPMode.');
           try {
             api.onPiPModeChange(arg_mode!);
-            return wrapResponse(empty: true);
-          } on PlatformException catch (e) {
-            return wrapResponse(error: e);
-          }          catch (e) {
-            return wrapResponse(error: PlatformException(code: 'error', message: e.toString()));
-          }
-        });
-      }
-    }
-    {
-      final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
-          'dev.flutter.pigeon.kvideo.PlayerEventListener.onUserLeaveHint$messageChannelSuffix', pigeonChannelCodec,
-          binaryMessenger: binaryMessenger);
-      if (api == null) {
-        pigeonVar_channel.setMessageHandler(null);
-      } else {
-        pigeonVar_channel.setMessageHandler((Object? message) async {
-          try {
-            api.onUserLeaveHint();
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);

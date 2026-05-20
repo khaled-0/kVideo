@@ -114,4 +114,8 @@ class PlayerController {
     PlayerEventListener.setUp(null, messageChannelSuffix: id);
     return _instanceManager.dispose(id);
   }
+
+  /// Only works for android 12 and above
+  static void setAutoEnterPiP(bool value) =>
+      _instanceManager.setAutoEnterPiPMode(value);
 }

@@ -14,11 +14,13 @@
 
         <activity
             android:name=".PiPActivity"
+            android:allowTaskReparenting="true"
             android:configChanges="keyboardHidden|orientation|screenSize|smallestScreenSize|screenLayout"
             android:excludeFromRecents="true"
             android:exported="false"
             android:launchMode="singleTask"
             android:supportsPictureInPicture="true"
+            android:taskAffinity="dev.khaled.KVideo.PiPActivity"
             android:theme="@style/PiPActivityTheme" />
 
         <service

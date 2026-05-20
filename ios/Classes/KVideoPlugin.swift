@@ -58,6 +58,8 @@ public class KVideoPlugin: NSObject, FlutterPlugin, PlayerInstance {
         Self.controllers[id]?.dispose()
         Self.controllers[id] = nil
     }
+    
+    func setAutoEnterPiPMode(value: Bool) throws {}
 }
 
 class PlayerFactory: NSObject, FlutterPlatformViewFactory {

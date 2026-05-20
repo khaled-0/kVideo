@@ -20,13 +20,16 @@ abstract class PlayerInstance {
   void create(String id);
 
   void dispose(String id);
+
+  /// Android Only
+  void setAutoEnterPiPMode(bool value);
 }
 
 enum PlaybackStatus { playing, paused, finished, error, preparing }
 
 enum BoxFitMode { fill, fit }
 
-enum PiPMode { active, inactive, closed }
+enum PiPMode { parent, active, inactive, closed }
 
 class VideoTextureData {
   int? textureId;
@@ -101,8 +104,6 @@ abstract class PlayerEventListener {
   void onPlaybackSpeedUpdate(double speed);
 
   void onPiPModeChange(PiPMode mode);
-
-  void onUserLeaveHint();
 }
 
 class Media {

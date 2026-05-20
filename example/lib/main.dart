@@ -48,7 +48,13 @@ void main() async {
   });
 
   controller.state.pipMode.addListener(() {
+    print("PiPMode ${controller.state.pipMode.value}");
+    if (controller.state.pipMode.value == PiPMode.inactive) {
+      PlayerController.setAutoEnterPiP(true);
+    }
+
     if (controller.state.pipMode.value == PiPMode.closed) {
+      PlayerController.setAutoEnterPiP(true);
       controller.play(null);
     }
 
@@ -65,13 +71,10 @@ void main() async {
   // );
   // print(id);
 
+  PlayerController.setAutoEnterPiP(true);
+
   controller
-      .initialize(
-        configuration: PlayerConfiguration(
-          initializeIMA: true,
-          bufferingConfig: BufferingConfig(minBufferMs: 1000_000_0),
-        ),
-      )
+      .initialize(configuration: PlayerConfiguration(initializeIMA: true))
       .then((_) {
         // controller.play(
         //   Media(
@@ -150,6 +153,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
               right: 40,
               child: ElevatedButton(
                 onPressed: () {
+                  PlayerController.setAutoEnterPiP(false);
                   controller.enterPiPMode();
                 },
                 child: Text("PIP"),
