@@ -9,8 +9,11 @@ import android.media.MediaDrm.PROPERTY_VENDOR
 import android.media.MediaDrm.PROPERTY_VERSION
 import android.os.Build
 import android.os.Build.VERSION_CODES
+import android.util.Log
 import android.view.View
 import androidx.annotation.OptIn
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
 import androidx.media3.common.C
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.PlayerView.SHOW_BUFFERING_NEVER
@@ -22,10 +25,10 @@ import io.flutter.plugin.common.PluginRegistry
 import io.flutter.plugin.platform.PlatformView
 import io.flutter.plugin.platform.PlatformViewFactory
 import io.flutter.view.TextureRegistry
-
+import io.flutter.embedding.engine.plugins.lifecycle.FlutterLifecycleAdapter
 
 class KVideoPlugin : FlutterPlugin, ActivityAware, PlayerInstance, DRMInfoApi,
-    PluginRegistry.UserLeaveHintListener {
+    PluginRegistry.UserLeaveHintListener, DefaultLifecycleObserver {
 
     companion object {
         val controllers = mutableMapOf<String, PlayerController>()
@@ -36,6 +39,8 @@ class KVideoPlugin : FlutterPlugin, ActivityAware, PlayerInstance, DRMInfoApi,
     private lateinit var textureRegistry: TextureRegistry
 
     private var activityPluginBinding: ActivityPluginBinding? = null
+
+    var isParentInPiPMode = false
 
 
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
@@ -88,18 +93,30 @@ class KVideoPlugin : FlutterPlugin, ActivityAware, PlayerInstance, DRMInfoApi,
                 it.removeOnUserLeaveHintListener(this)
             }
         }
+
     }
 
     override fun onAttachedToActivity(binding: ActivityPluginBinding) {
         activityPluginBinding = binding
+        FlutterLifecycleAdapter.getActivityLifecycle(binding).addObserver(this)
     }
 
     override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
         activityPluginBinding = binding
+        FlutterLifecycleAdapter.getActivityLifecycle(binding).addObserver(this)
     }
 
-    override fun onDetachedFromActivityForConfigChanges() {}
+    override fun onDetachedFromActivityForConfigChanges() {
+        activityPluginBinding?.let {
+            FlutterLifecycleAdapter.getActivityLifecycle(it).removeObserver(this)
+        }
+        activityPluginBinding = null
+    }
+
     override fun onDetachedFromActivity() {
+        activityPluginBinding?.let {
+            FlutterLifecycleAdapter.getActivityLifecycle(it).removeObserver(this)
+        }
         activityPluginBinding = null
     }
 
@@ -113,9 +130,33 @@ class KVideoPlugin : FlutterPlugin, ActivityAware, PlayerInstance, DRMInfoApi,
             activity?.enterPictureInPictureMode(params.build())
         }
 
-        controllers.values.forEach {
-            it.pipListener.invoke(PiPMode.PARENT)
+        if (activity?.isInPictureInPictureMode ?: false) {
+            isParentInPiPMode = true
+            controllers.values.forEach {
+                it.pipListener.invoke(PiPMode.PARENT)
+            }
         }
+    }
+
+
+    override fun onStop(owner: LifecycleOwner) {
+        super.onStop(owner)
+        if (!isParentInPiPMode) return
+        controllers.values.forEach {
+            it.pipListener.invoke(PiPMode.CLOSED)
+        }
+
+        isParentInPiPMode = false
+    }
+
+    override fun onResume(owner: LifecycleOwner) {
+        super.onResume(owner)
+        if (!isParentInPiPMode) return
+        controllers.values.forEach {
+            it.pipListener.invoke(PiPMode.INACTIVE)
+        }
+
+        isParentInPiPMode = false
     }
 }
 
