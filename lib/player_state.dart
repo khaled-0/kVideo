@@ -26,8 +26,6 @@ class PlayerState implements PlayerEventListener {
 
   final ValueNotifier<bool> ima = ValueNotifier(false);
 
-  VoidCallback? onUserLeaveHintCallback;
-
   @override
   void onBufferUpdate(int second) {
     buffer.value = Duration(seconds: second);
@@ -88,7 +86,4 @@ class PlayerState implements PlayerEventListener {
   void onPiPModeChange(PiPMode mode) {
     pipMode.value = mode;
   }
-
-  @override
-  void onUserLeaveHint() => onUserLeaveHintCallback?.call();
 }

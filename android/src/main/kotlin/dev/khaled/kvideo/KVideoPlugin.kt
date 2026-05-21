@@ -1,7 +1,11 @@
 package dev.khaled.kvideo
 
 import android.app.PictureInPictureParams
+import android.content.ComponentName
 import android.content.Context
+import android.content.Context.BIND_AUTO_CREATE
+import android.content.Intent
+import android.content.ServiceConnection
 import android.media.MediaDrm
 import android.media.MediaDrm.PROPERTY_ALGORITHMS
 import android.media.MediaDrm.PROPERTY_DESCRIPTION
@@ -9,7 +13,7 @@ import android.media.MediaDrm.PROPERTY_VENDOR
 import android.media.MediaDrm.PROPERTY_VERSION
 import android.os.Build
 import android.os.Build.VERSION_CODES
-import android.util.Log
+import android.os.IBinder
 import android.view.View
 import androidx.annotation.OptIn
 import androidx.lifecycle.DefaultLifecycleObserver
@@ -20,15 +24,15 @@ import androidx.media3.ui.PlayerView.SHOW_BUFFERING_NEVER
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
+import io.flutter.embedding.engine.plugins.lifecycle.FlutterLifecycleAdapter
 import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.PluginRegistry
 import io.flutter.plugin.platform.PlatformView
 import io.flutter.plugin.platform.PlatformViewFactory
 import io.flutter.view.TextureRegistry
-import io.flutter.embedding.engine.plugins.lifecycle.FlutterLifecycleAdapter
 
 class KVideoPlugin : FlutterPlugin, ActivityAware, PlayerInstance, DRMInfoApi,
-    PluginRegistry.UserLeaveHintListener, DefaultLifecycleObserver {
+    PluginRegistry.UserLeaveHintListener, DefaultLifecycleObserver, ServiceConnection {
 
     companion object {
         val controllers = mutableMapOf<String, PlayerController>()
@@ -41,6 +45,7 @@ class KVideoPlugin : FlutterPlugin, ActivityAware, PlayerInstance, DRMInfoApi,
     private var activityPluginBinding: ActivityPluginBinding? = null
 
     var isParentInPiPMode = false
+    var isServiceBound = false
 
 
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
@@ -122,18 +127,24 @@ class KVideoPlugin : FlutterPlugin, ActivityAware, PlayerInstance, DRMInfoApi,
 
 
     override fun onUserLeaveHint() {
-        val activity = activityPluginBinding?.activity
+        val activity = activityPluginBinding?.activity ?: return
         if (Build.VERSION.SDK_INT < VERSION_CODES.O) {
-            @Suppress("DEPRECATION") activity?.enterPictureInPictureMode()
+            @Suppress("DEPRECATION") (activity.enterPictureInPictureMode())
         } else {
             val params = PictureInPictureParams.Builder()
-            activity?.enterPictureInPictureMode(params.build())
+            activity.enterPictureInPictureMode(params.build())
         }
 
-        if (activity?.isInPictureInPictureMode ?: false) {
+        if (Build.VERSION.SDK_INT >= VERSION_CODES.Q && !isServiceBound) {
+            val serviceIntent = Intent(activity, Android12PiPService::class.java)
+            activity.startService(serviceIntent)
+            activity.bindService(serviceIntent, this, BIND_AUTO_CREATE)
+        }
+
+        if (activity.isInPictureInPictureMode) {
             isParentInPiPMode = true
             controllers.values.forEach {
-                it.pipListener.invoke(PiPMode.PARENT)
+                it.notifyPiPModeChange(PiPMode.PARENT)
             }
         }
     }
@@ -143,7 +154,7 @@ class KVideoPlugin : FlutterPlugin, ActivityAware, PlayerInstance, DRMInfoApi,
         super.onStop(owner)
         if (!isParentInPiPMode) return
         controllers.values.forEach {
-            it.pipListener.invoke(PiPMode.CLOSED)
+            it.notifyPiPModeChange(PiPMode.CLOSED)
         }
 
         isParentInPiPMode = false
@@ -153,10 +164,33 @@ class KVideoPlugin : FlutterPlugin, ActivityAware, PlayerInstance, DRMInfoApi,
         super.onResume(owner)
         if (!isParentInPiPMode) return
         controllers.values.forEach {
-            it.pipListener.invoke(PiPMode.INACTIVE)
+            it.notifyPiPModeChange(PiPMode.INACTIVE)
         }
 
         isParentInPiPMode = false
+    }
+
+    override fun onServiceConnected(p0: ComponentName?, p1: IBinder?) {
+        isServiceBound = true
+    }
+
+    override fun onServiceDisconnected(p0: ComponentName?) {
+        isServiceBound = false
+    }
+
+    override fun onDestroy(owner: LifecycleOwner) {
+        super.onDestroy(owner)
+        if (Build.VERSION.SDK_INT >= VERSION_CODES.Q && isServiceBound) {
+            val activity = activityPluginBinding?.activity ?: return
+            activity.unbindService(this)
+            val serviceIntent = Intent(activity, Android12PiPService::class.java)
+            activity.stopService(serviceIntent)
+        }
+
+        if (PiPManager.isPiPActive()) PiPManager.stopPiPActivity()
+
+        controllers.values.forEach { it.dispose() }
+        controllers.clear()
     }
 }
 

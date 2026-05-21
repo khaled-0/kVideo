@@ -38,7 +38,6 @@ import com.google.ads.interactivemedia.v3.api.ImaSdkFactory
 import com.google.ads.interactivemedia.v3.api.ImaSdkSettings
 import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.view.TextureRegistry
-import kotlin.getValue
 
 
 @OptIn(UnstableApi::class)
@@ -215,26 +214,34 @@ class PlayerController(
 
     fun reattachPlayerSurface() {
         Handler(Looper.getMainLooper()).post {
-            if (this::surfaceProducer.isInitialized) {
-                // Recreate Video TextureView. Using existing one does not seem to work every time
-                val data = initAndroidTextureView()
-                eventHandler.listener.onVideoSizeUpdate(data) {}
-            } else {
-                playerView.player = player
-                player.setVideoSurfaceView(playerView.videoSurfaceView as SurfaceView)
-            }
+            try {
+                if (this::surfaceProducer.isInitialized) {
+                    // Recreate Video TextureView. Using existing one does not seem to work every time
+                    val data = initAndroidTextureView()
+                    eventHandler.listener.onVideoSizeUpdate(data) {}
+                } else {
+                    playerView.player = player
+                    player.setVideoSurfaceView(playerView.videoSurfaceView as SurfaceView)
+                }
 
-            player.prepare()
+                player.prepare()
+
+            } catch (_: Exception) {
+                player.stop()
+            }
         }
     }
 
 
-    val pipListener: PiPListener = { mode: PiPMode ->
-        eventHandler.listener.onPiPModeChange(mode) {}
+    fun notifyPiPModeChange(mode: PiPMode) = eventHandler.listener.onPiPModeChange(mode) {}
+    private val pipListener: PiPListener = { mode: PiPMode ->
+        notifyPiPModeChange(mode)
+        // This gets called when using PiPActivity
         if (arrayOf(PiPMode.CLOSED, PiPMode.INACTIVE).contains(mode)) reattachPlayerSurface()
     }
 
     override fun enterPiPMode() {
+        if (PiPManager.isPiPActive()) return PiPManager.updatePlayer(suffix)
         val intent = Intent(context, PiPActivity::class.java)
         intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -369,7 +376,10 @@ class PlayerController(
         }
         playerView.player = null
         if (this::player.isInitialized) player.release()
-        if (this::surfaceProducer.isInitialized) surfaceProducer.surface.release()
+        try {
+            if (this::surfaceProducer.isInitialized) surfaceProducer.release()
+        } catch (_: Exception) {
+        }
     }
 }
 

@@ -16,6 +16,7 @@ import android.os.IBinder
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.annotation.OptIn
+import androidx.media3.common.util.Log
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
@@ -28,15 +29,13 @@ class PiPActivity : ComponentActivity(), ServiceConnection {
         const val ACTION_STOP_PIP = "ACTION_STOP_PIP"
     }
 
-    private val controller: PlayerController by lazy {
-        KVideoPlugin.controllers[intent.getStringExtra("id")]!!
-    }
-
     private lateinit var playerView: PlayerView
 
     // In picture-in-picture mode, clicking the X in the upper right corner will trigger `onStop` first.
     // Clicking the zoom button will not trigger `onStop`.
     var shouldResumeParentActivity = true
+
+    var isParentDestroyed = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -56,7 +55,7 @@ class PiPActivity : ComponentActivity(), ServiceConnection {
             useController = false
             setShowBuffering(PlayerView.SHOW_BUFFERING_ALWAYS)
             resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-            player = controller.player
+            player = KVideoPlugin.controllers[intent.getStringExtra("id")]!!.player
         }
 
         if (Build.VERSION.SDK_INT < VERSION_CODES.O) {
@@ -64,6 +63,16 @@ class PiPActivity : ComponentActivity(), ServiceConnection {
         } else {
             val params = PictureInPictureParams.Builder()
             enterPictureInPictureMode(params.build())
+        }
+
+        PiPManager.registerPlayerChangeListener { id ->
+            if (id == null) {
+                isParentDestroyed = true
+                return@registerPlayerChangeListener finishAndRemoveTask()
+            }
+
+            if (playerView.player == KVideoPlugin.controllers[id]!!.player) return@registerPlayerChangeListener
+            playerView.player = KVideoPlugin.controllers[id]!!.player
         }
     }
 
@@ -95,6 +104,8 @@ class PiPActivity : ComponentActivity(), ServiceConnection {
     // Due to the foreground service startup restriction in Android 12, if the activity interface is closed
     // too early after returning from picture-in-picture mode, the app cannot be launched normally.
     private fun signalPiPToClose() {
+        if (!shouldResumeParentActivity) return finishAndRemoveTask()
+
         if (isDestroyed || isFinishing) return
         val intent = Intent(this, this.javaClass)
         intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
@@ -116,15 +127,17 @@ class PiPActivity : ComponentActivity(), ServiceConnection {
             stopService(serviceIntent)
         }
 
-        // iterate app tasks available and navigate to launcher task (browse task)
-        val activityManager = baseContext.getSystemService(ACTIVITY_SERVICE) as ActivityManager
-        val appTasks = activityManager.appTasks
-        for (task in appTasks) {
-            val baseIntent = task.taskInfo.baseIntent
-            val categories = baseIntent.categories
-            if (categories != null && categories.contains(Intent.CATEGORY_LAUNCHER)) {
-                task.moveToFront()
-                return
+        if (!isParentDestroyed) {
+            // iterate app tasks available and navigate to launcher task (browse task)
+            val activityManager = baseContext.getSystemService(ACTIVITY_SERVICE) as ActivityManager
+            val appTasks = activityManager.appTasks
+            for (task in appTasks) {
+                val baseIntent = task.taskInfo.baseIntent
+                val categories = baseIntent.categories
+                if (categories != null && categories.contains(Intent.CATEGORY_LAUNCHER)) {
+                    task.moveToFront()
+                    return
+                }
             }
         }
     }
@@ -137,22 +150,39 @@ class PiPActivity : ComponentActivity(), ServiceConnection {
 }
 
 typealias PiPListener = (mode: PiPMode) -> Unit
+private typealias PiPUpdatePlayerListener = (String?) -> Unit
 
 object PiPManager {
+    private var isActive = false
 
     private var listener: PiPListener? = null
+    private var playerUpdateListener: PiPUpdatePlayerListener? = null
 
     fun setListener(listener: PiPListener?) {
         this.listener = listener
+        isActive = true
+    }
+
+    fun registerPlayerChangeListener(listener: PiPUpdatePlayerListener) {
+        playerUpdateListener = listener
     }
 
     fun notifyPipEnter() {
+        isActive = true
         listener?.invoke(PiPMode.ACTIVE)
     }
 
     fun notifyPipExited(shouldResume: Boolean) {
+        isActive = false
         listener?.invoke(if (shouldResume) PiPMode.INACTIVE else PiPMode.CLOSED)
     }
+
+    fun isPiPActive(): Boolean = isActive
+    fun updatePlayer(suffix: String) {
+        playerUpdateListener?.invoke(suffix)
+    }
+
+    fun stopPiPActivity() = playerUpdateListener?.invoke(null)
 }
 
 /**
