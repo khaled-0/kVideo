@@ -1,0 +1,22 @@
+{
+  "pins" : [
+    {
+      "identity" : "swift-package-manager-google-interactive-media-ads-ios",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/googleads/swift-package-manager-google-interactive-media-ads-ios",
+      "state" : {
+        "branch" : "main",
+        "revision" : "fdf54991c74edc228b59592a44f33c564abafcc0"
+      }
+    },
+    {
+      "identity" : "vidloader",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Cyklet/VidLoader",
+      "state" : {
+        "revision" : "062506f12a6e0bacc5edba4a081cd35f40616adb"
+      }
+    }
+  ],
+  "version" : 2
+}

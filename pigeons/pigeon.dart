@@ -11,7 +11,7 @@ import 'package:pigeon/pigeon.dart';
     dartOptions: DartOptions(),
     kotlinOut: 'android/src/main/kotlin/dev/khaled/kvideo/Pigeon.g.kt',
     kotlinOptions: KotlinOptions(package: "dev.khaled.kvideo"),
-    swiftOut: 'ios/Classes/Pigeon.g.swift',
+    swiftOut: 'ios/kVideo/Sources/kVideo/Pigeon.g.swift',
     swiftOptions: SwiftOptions(),
   ),
 )

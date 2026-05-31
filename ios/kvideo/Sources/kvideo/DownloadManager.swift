@@ -9,6 +9,10 @@ import AVFoundation
 import Flutter
 import Foundation
 
+#if SWIFT_PACKAGE
+import VidLoader
+#endif
+
 class DownloadManager: NSObject, DownloadManagerApi {
     public static let session = VidLoader()
     
