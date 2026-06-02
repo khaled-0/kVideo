@@ -131,7 +131,7 @@ class KVideoPlugin : FlutterPlugin, ActivityAware, PlayerInstance, DRMInfoApi,
         if (Build.VERSION.SDK_INT < VERSION_CODES.O) {
             @Suppress("DEPRECATION") (activity.enterPictureInPictureMode())
         } else {
-            val params = PictureInPictureParams.Builder()
+            val params = PictureInPictureParams.Builder().setActions(emptyList())
             activity.enterPictureInPictureMode(params.build())
         }
 

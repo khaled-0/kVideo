@@ -137,7 +137,9 @@ class PlayerController(
         val mediaItem = MediaItem.Builder().setUri(media.url).apply {
             media.imaTagUrl?.let {
                 setAdsConfiguration(
-                    MediaItem.AdsConfiguration.Builder(it.toUri()).setAdsId(media.url).build()
+                    MediaItem.AdsConfiguration.Builder(it.toUri()).setAdsId(
+                        System.currentTimeMillis()
+                    ).build()
                 )
             }
         }.build()

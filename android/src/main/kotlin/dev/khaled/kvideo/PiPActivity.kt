@@ -61,7 +61,7 @@ class PiPActivity : ComponentActivity(), ServiceConnection {
         if (Build.VERSION.SDK_INT < VERSION_CODES.O) {
             @Suppress("DEPRECATION") enterPictureInPictureMode()
         } else {
-            val params = PictureInPictureParams.Builder()
+            val params = PictureInPictureParams.Builder().setActions(emptyList())
             enterPictureInPictureMode(params.build())
         }
 
