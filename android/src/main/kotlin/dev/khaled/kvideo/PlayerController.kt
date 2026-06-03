@@ -7,6 +7,7 @@ import android.os.Looper
 import android.view.SurfaceView
 import androidx.annotation.OptIn
 import androidx.core.net.toUri
+import androidx.core.view.children
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.Format
@@ -308,6 +309,10 @@ class PlayerController(
     }
 
     override fun isPlayingIMA(): Boolean = player.isPlayingAd
+
+    override fun skipIMAAd() {
+      // TODO
+    }
 
     fun TrackType.toExoType(): Int = when (this) {
         TrackType.AUDIO -> C.TRACK_TYPE_AUDIO

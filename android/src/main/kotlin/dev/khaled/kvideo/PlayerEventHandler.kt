@@ -1,5 +1,7 @@
 package dev.khaled.kvideo
 
+import android.os.Handler
+import android.util.Log
 import androidx.media3.common.C
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.PlaybackParameters
@@ -23,7 +25,7 @@ class PlayerEventHandler(
 
     init {
         /// Send Progress Updates Every Seconds
-        val handler = android.os.Handler(player.applicationLooper)
+        val handler = Handler(player.applicationLooper)
         handler.post(object : Runnable {
             override fun run() {
                 if (player.isReleased) return
@@ -97,14 +99,8 @@ class PlayerEventHandler(
 
 
     override fun onAdEvent(event: AdEvent) {
-        val isAdPlaying = when (event.type) {
-            AdEvent.AdEventType.ALL_ADS_COMPLETED, AdEvent.AdEventType.COMPLETED, AdEvent.AdEventType.SKIPPED, AdEvent.AdEventType.CONTENT_RESUME_REQUESTED -> false
-            AdEvent.AdEventType.STARTED, AdEvent.AdEventType.CONTENT_PAUSE_REQUESTED -> true
-            AdEvent.AdEventType.AD_PROGRESS -> true
-            else -> null
-        }
-
-        listener.onIMAStatusChange(isAdPlaying ?: playerController.isPlayingIMA()) {}
+        Log.d("PlayerEventHandler_onAdEvent", event.type.toString())
+        listener.onIMAStatusChange(event.type.toIMAStatus(), event.ad?.skipTimeOffset) {}
     }
 
     override fun onVideoSizeChanged(videoSize: VideoSize) {
@@ -140,4 +136,34 @@ class PlayerEventHandler(
 }
 
 
-
+fun AdEvent.AdEventType.toIMAStatus(): IMAStatus? = when (this) {
+    AdEvent.AdEventType.ALL_ADS_COMPLETED -> IMAStatus.ALL_ADS_COMPLETED
+    AdEvent.AdEventType.AD_BREAK_FETCH_ERROR -> IMAStatus.AD_BREAK_FETCH_ERROR
+    AdEvent.AdEventType.CLICKED -> IMAStatus.CLICKED
+    AdEvent.AdEventType.COMPLETED -> IMAStatus.COMPLETE
+    AdEvent.AdEventType.CUEPOINTS_CHANGED -> IMAStatus.CUEPOINTS_CHANGED
+    AdEvent.AdEventType.CONTENT_PAUSE_REQUESTED -> IMAStatus.CONTENT_PAUSE_REQUESTED
+    AdEvent.AdEventType.CONTENT_RESUME_REQUESTED -> IMAStatus.CONTENT_RESUME_REQUESTED
+    AdEvent.AdEventType.FIRST_QUARTILE -> IMAStatus.FIRST_QUARTILE
+    AdEvent.AdEventType.LOG -> IMAStatus.LOG
+    AdEvent.AdEventType.AD_BREAK_READY -> IMAStatus.AD_BREAK_READY
+    AdEvent.AdEventType.MIDPOINT -> IMAStatus.MIDPOINT
+    AdEvent.AdEventType.PAUSE_AD_READY -> IMAStatus.PAUSE_AD_READY
+    AdEvent.AdEventType.PAUSED -> IMAStatus.PAUSE
+    AdEvent.AdEventType.RESUMED -> IMAStatus.RESUME
+    AdEvent.AdEventType.SKIPPABLE_STATE_CHANGED -> IMAStatus.SKIPPABLE_STATE_CHANGED
+    AdEvent.AdEventType.SKIPPED -> IMAStatus.SKIPPED
+    AdEvent.AdEventType.STARTED -> IMAStatus.STARTED
+    AdEvent.AdEventType.TAPPED -> IMAStatus.TAPPED
+    AdEvent.AdEventType.ICON_TAPPED -> IMAStatus.ICON_TAPPED
+    AdEvent.AdEventType.ICON_FALLBACK_IMAGE_CLOSED -> IMAStatus.ICON_FALLBACK_IMAGE_CLOSED
+    AdEvent.AdEventType.THIRD_QUARTILE -> IMAStatus.THIRD_QUARTILE
+    AdEvent.AdEventType.LOADED -> IMAStatus.LOADED
+    AdEvent.AdEventType.AD_PROGRESS -> IMAStatus.AD_PROGRESS
+    AdEvent.AdEventType.AD_BUFFERING -> IMAStatus.AD_BUFFERING
+    AdEvent.AdEventType.AD_BREAK_STARTED -> IMAStatus.AD_BREAK_STARTED
+    AdEvent.AdEventType.AD_BREAK_ENDED -> IMAStatus.AD_BREAK_ENDED
+    AdEvent.AdEventType.AD_PERIOD_STARTED -> IMAStatus.AD_PERIOD_STARTED
+    AdEvent.AdEventType.AD_PERIOD_ENDED -> IMAStatus.AD_PERIOD_ENDED
+    else -> null
+}

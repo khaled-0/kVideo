@@ -344,6 +344,10 @@ public class PlayerController: NSObject, FlutterPlatformView,
         return adsManager?.adPlaybackInfo.isPlaying == true
     }
 
+    func skipIMAAd() throws {
+        // TODO
+    }
+
     func playerViewDidMoveToWindow() {
         requestAds()
     }
@@ -454,24 +458,12 @@ extension PlayerController {
         didReceive event: IMAAdEvent
     ) {
         if player.currentItem == nil { return }
-
         print("AdsManager Event:", IMAAdEventTypeToString(event.type))
 
-        switch event.type {
-        case .LOADED:
-            if pipController?.isPictureInPictureActive != true {
-                adsManager.start()
-            }
-
-        case .STARTED:
-            eventHandler.listener.onIMAStatusChange(showingAd: true) { _ in }
-
-        case .SKIPPED, .COMPLETE, .ALL_ADS_COMPLETED:
-            eventHandler.listener.onIMAStatusChange(showingAd: false) { _ in }
-
-        default:
-            break
-        }
+        eventHandler.listener.onIMAStatusChange(
+            status: event.type.toIMAStatus(),
+            skipOffsetSecond: -1
+        ) { _ in }
     }
 
     public func adsManager(
@@ -493,13 +485,19 @@ extension PlayerController {
 
     public func adsManagerDidRequestContentPause(_ adsManager: IMAAdsManager) {
         if player.currentItem == nil { return }
-        eventHandler.listener.onIMAStatusChange(showingAd: true) { _ in }
+        eventHandler.listener.onIMAStatusChange(
+            status: .contentPauseRequested,
+            skipOffsetSecond: nil
+        ) { _ in }
         player.pause()
     }
 
     public func adsManagerDidRequestContentResume(_ adsManager: IMAAdsManager) {
         if player.currentItem == nil { return }
-        eventHandler.listener.onIMAStatusChange(showingAd: false) { _ in }
+        eventHandler.listener.onIMAStatusChange(
+            status: .contentResumeRequested,
+            skipOffsetSecond: nil
+        ) { _ in }
         player.play()
     }
 
@@ -577,6 +575,67 @@ extension PlayerController {
     ) {
         self.eventHandler.listener.onPiPModeChange(mode: PiPMode.inactive) {
             _ in
+        }
+    }
+}
+
+extension IMAAdEventType {
+    func toIMAStatus() -> IMAStatus? {
+        switch self {
+        case .AD_BREAK_READY:
+            return .adBreakReady
+        case .AD_BREAK_FETCH_ERROR:
+            return .adBreakFetchError
+        case .AD_BREAK_ENDED:
+            return .adBreakEnded
+        case .AD_BREAK_STARTED:
+            return .adBreakStarted
+        case .AD_PERIOD_ENDED:
+            return .adPeriodEnded
+        case .AD_PERIOD_STARTED:
+            return .adPeriodStarted
+        case .ALL_ADS_COMPLETED:
+            return .allAdsCompleted
+        case .CLICKED:
+            return .clicked
+        case .COMPLETE:
+            return .complete
+        case .CUEPOINTS_CHANGED:
+            return .cuepointsChanged
+        case .ICON_FALLBACK_IMAGE_CLOSED:
+            return .iconFallbackImageClosed
+        case .ICON_TAPPED:
+            return .iconTapped
+        case .FIRST_QUARTILE:
+            return .firstQuartile
+        case .LOADED:
+            return .loaded
+        case .LOG:
+            return .log
+        case .MIDPOINT:
+            return .midpoint
+        case .PAUSE:
+            return .pause
+        case .RESUME:
+            return .resume
+        case .SKIPPED:
+            return .skipped
+        case .STARTED:
+            return .started
+        case .STREAM_LOADED:
+            return .streamLoaded
+        case .STREAM_STARTED:
+            return .streamStarted
+        case .TAPPED:
+            return .tapped
+        case .THIRD_QUARTILE:
+            return .thirdQuartile
+        case .SHOW_AD_UI:
+            return nil
+        case .HIDE_AD_UI:
+            return nil
+        @unknown default:
+            return nil
         }
     }
 }

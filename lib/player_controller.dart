@@ -115,6 +115,8 @@ class PlayerController {
     return _instanceManager.dispose(id);
   }
 
+  Future<void> skipIMAAd() => _api.skipIMAAd();
+
   /// Only works for android 12 and above
   static void setAutoEnterPiP(bool value) =>
       _instanceManager.setAutoEnterPiPMode(value);

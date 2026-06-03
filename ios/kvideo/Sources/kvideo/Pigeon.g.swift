@@ -152,6 +152,45 @@ enum PiPMode: Int {
   case closed = 3
 }
 
+enum IMAStatus: Int {
+  case adBreakReady = 0
+  case adBreakFetchError = 1
+  case adBreakEnded = 2
+  case adBreakStarted = 3
+  case adPeriodEnded = 4
+  case adPeriodStarted = 5
+  case allAdsCompleted = 6
+  case clicked = 7
+  case complete = 8
+  case cuepointsChanged = 9
+  case iconFallbackImageClosed = 10
+  case iconTapped = 11
+  case firstQuartile = 12
+  case loaded = 13
+  case log = 14
+  case midpoint = 15
+  case pause = 16
+  case resume = 17
+  case skipped = 18
+  case started = 19
+  case tapped = 20
+  case thirdQuartile = 21
+  case contentPauseRequested = 22
+  case contentResumeRequested = 23
+  /// iOS Only
+  case streamLoaded = 24
+  /// iOS Only
+  case streamStarted = 25
+  /// Android only
+  case pauseAdReady = 26
+  /// Android only
+  case skippableStateChanged = 27
+  /// Android only
+  case adProgress = 28
+  /// Android only
+  case adBuffering = 29
+}
+
 enum TrackType: Int {
   case audio = 0
   case video = 1
@@ -513,30 +552,36 @@ private class PigeonPigeonCodecReader: FlutterStandardReader {
     case 132:
       let enumResultAsInt: Int? = nilOrValue(self.readValue() as! Int?)
       if let enumResultAsInt = enumResultAsInt {
-        return TrackType(rawValue: enumResultAsInt)
+        return IMAStatus(rawValue: enumResultAsInt)
       }
       return nil
     case 133:
       let enumResultAsInt: Int? = nilOrValue(self.readValue() as! Int?)
       if let enumResultAsInt = enumResultAsInt {
-        return DownloadStatus(rawValue: enumResultAsInt)
+        return TrackType(rawValue: enumResultAsInt)
       }
       return nil
     case 134:
-      return VideoTextureData.fromList(self.readValue() as! [Any?])
+      let enumResultAsInt: Int? = nilOrValue(self.readValue() as! Int?)
+      if let enumResultAsInt = enumResultAsInt {
+        return DownloadStatus(rawValue: enumResultAsInt)
+      }
+      return nil
     case 135:
-      return Media.fromList(self.readValue() as! [Any?])
+      return VideoTextureData.fromList(self.readValue() as! [Any?])
     case 136:
-      return PlayerConfiguration.fromList(self.readValue() as! [Any?])
+      return Media.fromList(self.readValue() as! [Any?])
     case 137:
-      return BufferingConfig.fromList(self.readValue() as! [Any?])
+      return PlayerConfiguration.fromList(self.readValue() as! [Any?])
     case 138:
-      return SeekConfig.fromList(self.readValue() as! [Any?])
+      return BufferingConfig.fromList(self.readValue() as! [Any?])
     case 139:
-      return TrackData.fromList(self.readValue() as! [Any?])
+      return SeekConfig.fromList(self.readValue() as! [Any?])
     case 140:
-      return DownloadData.fromList(self.readValue() as! [Any?])
+      return TrackData.fromList(self.readValue() as! [Any?])
     case 141:
+      return DownloadData.fromList(self.readValue() as! [Any?])
+    case 142:
       return WidevineInfo.fromList(self.readValue() as! [Any?])
     default:
       return super.readValue(ofType: type)
@@ -555,35 +600,38 @@ private class PigeonPigeonCodecWriter: FlutterStandardWriter {
     } else if let value = value as? PiPMode {
       super.writeByte(131)
       super.writeValue(value.rawValue)
-    } else if let value = value as? TrackType {
+    } else if let value = value as? IMAStatus {
       super.writeByte(132)
       super.writeValue(value.rawValue)
-    } else if let value = value as? DownloadStatus {
+    } else if let value = value as? TrackType {
       super.writeByte(133)
       super.writeValue(value.rawValue)
-    } else if let value = value as? VideoTextureData {
+    } else if let value = value as? DownloadStatus {
       super.writeByte(134)
-      super.writeValue(value.toList())
-    } else if let value = value as? Media {
+      super.writeValue(value.rawValue)
+    } else if let value = value as? VideoTextureData {
       super.writeByte(135)
       super.writeValue(value.toList())
-    } else if let value = value as? PlayerConfiguration {
+    } else if let value = value as? Media {
       super.writeByte(136)
       super.writeValue(value.toList())
-    } else if let value = value as? BufferingConfig {
+    } else if let value = value as? PlayerConfiguration {
       super.writeByte(137)
       super.writeValue(value.toList())
-    } else if let value = value as? SeekConfig {
+    } else if let value = value as? BufferingConfig {
       super.writeByte(138)
       super.writeValue(value.toList())
-    } else if let value = value as? TrackData {
+    } else if let value = value as? SeekConfig {
       super.writeByte(139)
       super.writeValue(value.toList())
-    } else if let value = value as? DownloadData {
+    } else if let value = value as? TrackData {
       super.writeByte(140)
       super.writeValue(value.toList())
-    } else if let value = value as? WidevineInfo {
+    } else if let value = value as? DownloadData {
       super.writeByte(141)
+      super.writeValue(value.toList())
+    } else if let value = value as? WidevineInfo {
+      super.writeByte(142)
       super.writeValue(value.toList())
     } else {
       super.writeValue(value)
@@ -694,6 +742,7 @@ protocol PlayerControllerApi {
   func getFit() throws -> BoxFitMode
   func setFit(fit: BoxFitMode) throws
   func isPlayingIMA() throws -> Bool
+  func skipIMAAd() throws
   func setTrackPreference(track: TrackData?) throws
 }
 
@@ -961,6 +1010,19 @@ class PlayerControllerApiSetup {
     } else {
       isPlayingIMAChannel.setMessageHandler(nil)
     }
+    let skipIMAAdChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.kvideo.PlayerControllerApi.skipIMAAd\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      skipIMAAdChannel.setMessageHandler { _, reply in
+        do {
+          try api.skipIMAAd()
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      skipIMAAdChannel.setMessageHandler(nil)
+    }
     let setTrackPreferenceChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.kvideo.PlayerControllerApi.setTrackPreference\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       setTrackPreferenceChannel.setMessageHandler { message, reply in
@@ -987,7 +1049,7 @@ protocol PlayerEventListenerProtocol {
   func onBufferUpdate(second secondArg: Int64, completion: @escaping (Result<Void, PigeonError>) -> Void)
   func onPlaybackUpdate(status statusArg: PlaybackStatus, completion: @escaping (Result<Void, PigeonError>) -> Void)
   func onPlaybackError(error errorArg: String, completion: @escaping (Result<Void, PigeonError>) -> Void)
-  func onIMAStatusChange(showingAd showingAdArg: Bool, completion: @escaping (Result<Void, PigeonError>) -> Void)
+  func onIMAStatusChange(status statusArg: IMAStatus?, skipOffsetSecond skipOffsetSecondArg: Double?, completion: @escaping (Result<Void, PigeonError>) -> Void)
   func onTracksLoaded(tracks tracksArg: [TrackData], completion: @escaping (Result<Void, PigeonError>) -> Void)
   func onPlaybackSpeedUpdate(speed speedArg: Double, completion: @escaping (Result<Void, PigeonError>) -> Void)
   func onPiPModeChange(mode modeArg: PiPMode, completion: @escaping (Result<Void, PigeonError>) -> Void)
@@ -1111,10 +1173,10 @@ class PlayerEventListener: PlayerEventListenerProtocol {
       }
     }
   }
-  func onIMAStatusChange(showingAd showingAdArg: Bool, completion: @escaping (Result<Void, PigeonError>) -> Void) {
+  func onIMAStatusChange(status statusArg: IMAStatus?, skipOffsetSecond skipOffsetSecondArg: Double?, completion: @escaping (Result<Void, PigeonError>) -> Void) {
     let channelName: String = "dev.flutter.pigeon.kvideo.PlayerEventListener.onIMAStatusChange\(messageChannelSuffix)"
     let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
-    channel.sendMessage([showingAdArg] as [Any?]) { response in
+    channel.sendMessage([statusArg, skipOffsetSecondArg] as [Any?]) { response in
       guard let listResponse = response as? [Any?] else {
         completion(.failure(createConnectionError(withChannelName: channelName)))
         return

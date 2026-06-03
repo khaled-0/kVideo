@@ -31,6 +31,51 @@ enum BoxFitMode { fill, fit }
 
 enum PiPMode { parent, active, inactive, closed }
 
+enum IMAStatus {
+  adBreakReady,
+  adBreakFetchError,
+  adBreakEnded,
+  adBreakStarted,
+  adPeriodEnded,
+  adPeriodStarted,
+  allAdsCompleted,
+  clicked,
+  complete,
+  cuepointsChanged,
+  iconFallbackImageClosed,
+  iconTapped,
+  firstQuartile,
+  loaded,
+  log,
+  midpoint,
+  pause,
+  resume,
+  skipped,
+  started,
+  tapped,
+  thirdQuartile,
+  contentPauseRequested,
+  contentResumeRequested,
+
+  /// iOS Only
+  streamLoaded,
+
+  /// iOS Only
+  streamStarted,
+
+  /// Android only
+  pauseAdReady,
+
+  /// Android only
+  skippableStateChanged,
+
+  /// Android only
+  adProgress,
+
+  /// Android only
+  adBuffering,
+}
+
 class VideoTextureData {
   int? textureId;
   int? width;
@@ -79,6 +124,8 @@ abstract class PlayerControllerApi {
 
   bool isPlayingIMA();
 
+  void skipIMAAd();
+
   void setTrackPreference(TrackData? track);
 }
 
@@ -97,7 +144,7 @@ abstract class PlayerEventListener {
 
   void onPlaybackError(String error);
 
-  void onIMAStatusChange(bool showingAd);
+  void onIMAStatusChange(IMAStatus? status, double? skipOffsetSecond);
 
   void onTracksLoaded(List<TrackData> tracks);
 

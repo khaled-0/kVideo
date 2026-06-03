@@ -119,6 +119,51 @@ enum class PiPMode(val raw: Int) {
   }
 }
 
+enum class IMAStatus(val raw: Int) {
+  AD_BREAK_READY(0),
+  AD_BREAK_FETCH_ERROR(1),
+  AD_BREAK_ENDED(2),
+  AD_BREAK_STARTED(3),
+  AD_PERIOD_ENDED(4),
+  AD_PERIOD_STARTED(5),
+  ALL_ADS_COMPLETED(6),
+  CLICKED(7),
+  COMPLETE(8),
+  CUEPOINTS_CHANGED(9),
+  ICON_FALLBACK_IMAGE_CLOSED(10),
+  ICON_TAPPED(11),
+  FIRST_QUARTILE(12),
+  LOADED(13),
+  LOG(14),
+  MIDPOINT(15),
+  PAUSE(16),
+  RESUME(17),
+  SKIPPED(18),
+  STARTED(19),
+  TAPPED(20),
+  THIRD_QUARTILE(21),
+  CONTENT_PAUSE_REQUESTED(22),
+  CONTENT_RESUME_REQUESTED(23),
+  /** iOS Only */
+  STREAM_LOADED(24),
+  /** iOS Only */
+  STREAM_STARTED(25),
+  /** Android only */
+  PAUSE_AD_READY(26),
+  /** Android only */
+  SKIPPABLE_STATE_CHANGED(27),
+  /** Android only */
+  AD_PROGRESS(28),
+  /** Android only */
+  AD_BUFFERING(29);
+
+  companion object {
+    fun ofRaw(raw: Int): IMAStatus? {
+      return values().firstOrNull { it.raw == raw }
+    }
+  }
+}
+
 enum class TrackType(val raw: Int) {
   AUDIO(0),
   VIDEO(1),
@@ -482,50 +527,55 @@ private open class PigeonPigeonCodec : StandardMessageCodec() {
       }
       132.toByte() -> {
         return (readValue(buffer) as Long?)?.let {
-          TrackType.ofRaw(it.toInt())
+          IMAStatus.ofRaw(it.toInt())
         }
       }
       133.toByte() -> {
         return (readValue(buffer) as Long?)?.let {
-          DownloadStatus.ofRaw(it.toInt())
+          TrackType.ofRaw(it.toInt())
         }
       }
       134.toByte() -> {
-        return (readValue(buffer) as? List<Any?>)?.let {
-          VideoTextureData.fromList(it)
+        return (readValue(buffer) as Long?)?.let {
+          DownloadStatus.ofRaw(it.toInt())
         }
       }
       135.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          Media.fromList(it)
+          VideoTextureData.fromList(it)
         }
       }
       136.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          PlayerConfiguration.fromList(it)
+          Media.fromList(it)
         }
       }
       137.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          BufferingConfig.fromList(it)
+          PlayerConfiguration.fromList(it)
         }
       }
       138.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          SeekConfig.fromList(it)
+          BufferingConfig.fromList(it)
         }
       }
       139.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          TrackData.fromList(it)
+          SeekConfig.fromList(it)
         }
       }
       140.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          DownloadData.fromList(it)
+          TrackData.fromList(it)
         }
       }
       141.toByte() -> {
+        return (readValue(buffer) as? List<Any?>)?.let {
+          DownloadData.fromList(it)
+        }
+      }
+      142.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
           WidevineInfo.fromList(it)
         }
@@ -547,44 +597,48 @@ private open class PigeonPigeonCodec : StandardMessageCodec() {
         stream.write(131)
         writeValue(stream, value.raw.toLong())
       }
-      is TrackType -> {
+      is IMAStatus -> {
         stream.write(132)
         writeValue(stream, value.raw.toLong())
       }
-      is DownloadStatus -> {
+      is TrackType -> {
         stream.write(133)
         writeValue(stream, value.raw.toLong())
       }
-      is VideoTextureData -> {
+      is DownloadStatus -> {
         stream.write(134)
-        writeValue(stream, value.toList())
+        writeValue(stream, value.raw.toLong())
       }
-      is Media -> {
+      is VideoTextureData -> {
         stream.write(135)
         writeValue(stream, value.toList())
       }
-      is PlayerConfiguration -> {
+      is Media -> {
         stream.write(136)
         writeValue(stream, value.toList())
       }
-      is BufferingConfig -> {
+      is PlayerConfiguration -> {
         stream.write(137)
         writeValue(stream, value.toList())
       }
-      is SeekConfig -> {
+      is BufferingConfig -> {
         stream.write(138)
         writeValue(stream, value.toList())
       }
-      is TrackData -> {
+      is SeekConfig -> {
         stream.write(139)
         writeValue(stream, value.toList())
       }
-      is DownloadData -> {
+      is TrackData -> {
         stream.write(140)
         writeValue(stream, value.toList())
       }
-      is WidevineInfo -> {
+      is DownloadData -> {
         stream.write(141)
+        writeValue(stream, value.toList())
+      }
+      is WidevineInfo -> {
+        stream.write(142)
         writeValue(stream, value.toList())
       }
       else -> super.writeValue(stream, value)
@@ -694,6 +748,7 @@ interface PlayerControllerApi {
   fun getFit(): BoxFitMode
   fun setFit(fit: BoxFitMode)
   fun isPlayingIMA(): Boolean
+  fun skipIMAAd()
   fun setTrackPreference(track: TrackData?)
 
   companion object {
@@ -1013,6 +1068,22 @@ interface PlayerControllerApi {
         }
       }
       run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.kvideo.PlayerControllerApi.skipIMAAd$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { _, reply ->
+            val wrapped: List<Any?> = try {
+              api.skipIMAAd()
+              listOf(null)
+            } catch (exception: Throwable) {
+              PigeonPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
         val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.kvideo.PlayerControllerApi.setTrackPreference$separatedMessageChannelSuffix", codec)
         if (api != null) {
           channel.setMessageHandler { message, reply ->
@@ -1144,12 +1215,12 @@ class PlayerEventListener(private val binaryMessenger: BinaryMessenger, private 
       } 
     }
   }
-  fun onIMAStatusChange(showingAdArg: Boolean, callback: (Result<Unit>) -> Unit)
+  fun onIMAStatusChange(statusArg: IMAStatus?, skipOffsetSecondArg: Double?, callback: (Result<Unit>) -> Unit)
 {
     val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
     val channelName = "dev.flutter.pigeon.kvideo.PlayerEventListener.onIMAStatusChange$separatedMessageChannelSuffix"
     val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
-    channel.send(listOf(showingAdArg)) {
+    channel.send(listOf(statusArg, skipOffsetSecondArg)) {
       if (it is List<*>) {
         if (it.size > 1) {
           callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))
