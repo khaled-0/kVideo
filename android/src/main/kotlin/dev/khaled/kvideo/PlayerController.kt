@@ -35,6 +35,7 @@ import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
 import androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM
 import androidx.media3.ui.PlayerView
+import androidx.media3.ui.PlayerView.SHOW_BUFFERING_NEVER
 import com.google.ads.interactivemedia.v3.api.ImaSdkFactory
 import com.google.ads.interactivemedia.v3.api.ImaSdkSettings
 import io.flutter.plugin.common.BinaryMessenger
@@ -48,7 +49,10 @@ class PlayerController(
     val binaryMessenger: BinaryMessenger,
     val textureRegistry: TextureRegistry,
 ) : PlayerControllerApi, TextureRegistry.SurfaceProducer.Callback {
-    val playerView = PlayerView(context)
+    val playerView = PlayerView(context).apply {
+        useController = false
+        setShowBuffering(SHOW_BUFFERING_NEVER)
+    }
     lateinit var player: ExoPlayer
         private set
 
@@ -311,7 +315,7 @@ class PlayerController(
     override fun isPlayingIMA(): Boolean = player.isPlayingAd
 
     override fun skipIMAAd() {
-      // TODO
+        // TODO
     }
 
     fun TrackType.toExoType(): Int = when (this) {

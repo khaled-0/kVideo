@@ -205,12 +205,6 @@ private class PlayerFactory(
 
 @OptIn(UnstableApi::class)
 class PlayerView(val controller: PlayerController) : PlatformView {
-    init {
-        with(controller.playerView) {
-            useController = false
-            setShowBuffering(SHOW_BUFFERING_NEVER)
-        }
-    }
 
     override fun getView(): View = controller.playerView
 
