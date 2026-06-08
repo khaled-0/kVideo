@@ -461,8 +461,11 @@ extension PlayerController {
         print("AdsManager Event:", IMAAdEventTypeToString(event.type))
 
         eventHandler.listener.onIMAStatusChange(
-            status: event.type.toIMAStatus(),
-            skipOffsetSecond: -1
+            data: IMAEventData(
+                status: event.type.toIMAStatus(),
+                skipOffsetSecond: nil,
+                adTagID: event.ad?.adId,
+            )
         ) { _ in }
     }
 
@@ -486,8 +489,11 @@ extension PlayerController {
     public func adsManagerDidRequestContentPause(_ adsManager: IMAAdsManager) {
         if player.currentItem == nil { return }
         eventHandler.listener.onIMAStatusChange(
-            status: .contentPauseRequested,
-            skipOffsetSecond: nil
+            data: IMAEventData(
+                status: .contentPauseRequested,
+                skipOffsetSecond: nil,
+                adTagID: nil,
+            )
         ) { _ in }
         player.pause()
     }
@@ -495,8 +501,11 @@ extension PlayerController {
     public func adsManagerDidRequestContentResume(_ adsManager: IMAAdsManager) {
         if player.currentItem == nil { return }
         eventHandler.listener.onIMAStatusChange(
-            status: .contentResumeRequested,
-            skipOffsetSecond: nil
+            data: IMAEventData(
+                status: .contentResumeRequested,
+                skipOffsetSecond: nil,
+                adTagID: nil,
+            )
         ) { _ in }
         player.play()
     }

@@ -83,6 +83,12 @@ class VideoTextureData {
   BoxFitMode? fit;
 }
 
+class IMAEventData {
+  IMAStatus? status;
+  double? skipOffsetSecond;
+  String? adTagID;
+}
+
 @HostApi()
 abstract class PlayerControllerApi {
   void initialize(PlayerConfiguration? configuration);
@@ -144,7 +150,7 @@ abstract class PlayerEventListener {
 
   void onPlaybackError(String error);
 
-  void onIMAStatusChange(IMAStatus? status, double? skipOffsetSecond);
+  void onIMAStatusChange(IMAEventData? data);
 
   void onTracksLoaded(List<TrackData> tracks);
 

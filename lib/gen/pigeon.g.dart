@@ -169,6 +169,57 @@ class VideoTextureData {
 ;
 }
 
+class IMAEventData {
+  IMAEventData({
+    this.status,
+    this.skipOffsetSecond,
+    this.adTagID,
+  });
+
+  IMAStatus? status;
+
+  double? skipOffsetSecond;
+
+  String? adTagID;
+
+  List<Object?> _toList() {
+    return <Object?>[
+      status,
+      skipOffsetSecond,
+      adTagID,
+    ];
+  }
+
+  Object encode() {
+    return _toList();  }
+
+  static IMAEventData decode(Object result) {
+    result as List<Object?>;
+    return IMAEventData(
+      status: result[0] as IMAStatus?,
+      skipOffsetSecond: result[1] as double?,
+      adTagID: result[2] as String?,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! IMAEventData || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(encode(), other.encode());
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => Object.hashAll(_toList())
+;
+}
+
 class Media {
   Media({
     required this.url,
@@ -621,26 +672,29 @@ class _PigeonCodec extends StandardMessageCodec {
     }    else if (value is VideoTextureData) {
       buffer.putUint8(135);
       writeValue(buffer, value.encode());
-    }    else if (value is Media) {
+    }    else if (value is IMAEventData) {
       buffer.putUint8(136);
       writeValue(buffer, value.encode());
-    }    else if (value is PlayerConfiguration) {
+    }    else if (value is Media) {
       buffer.putUint8(137);
       writeValue(buffer, value.encode());
-    }    else if (value is BufferingConfig) {
+    }    else if (value is PlayerConfiguration) {
       buffer.putUint8(138);
       writeValue(buffer, value.encode());
-    }    else if (value is SeekConfig) {
+    }    else if (value is BufferingConfig) {
       buffer.putUint8(139);
       writeValue(buffer, value.encode());
-    }    else if (value is TrackData) {
+    }    else if (value is SeekConfig) {
       buffer.putUint8(140);
       writeValue(buffer, value.encode());
-    }    else if (value is DownloadData) {
+    }    else if (value is TrackData) {
       buffer.putUint8(141);
       writeValue(buffer, value.encode());
-    }    else if (value is WidevineInfo) {
+    }    else if (value is DownloadData) {
       buffer.putUint8(142);
+      writeValue(buffer, value.encode());
+    }    else if (value is WidevineInfo) {
+      buffer.putUint8(143);
       writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
@@ -671,18 +725,20 @@ class _PigeonCodec extends StandardMessageCodec {
       case 135: 
         return VideoTextureData.decode(readValue(buffer)!);
       case 136: 
-        return Media.decode(readValue(buffer)!);
+        return IMAEventData.decode(readValue(buffer)!);
       case 137: 
-        return PlayerConfiguration.decode(readValue(buffer)!);
+        return Media.decode(readValue(buffer)!);
       case 138: 
-        return BufferingConfig.decode(readValue(buffer)!);
+        return PlayerConfiguration.decode(readValue(buffer)!);
       case 139: 
-        return SeekConfig.decode(readValue(buffer)!);
+        return BufferingConfig.decode(readValue(buffer)!);
       case 140: 
-        return TrackData.decode(readValue(buffer)!);
+        return SeekConfig.decode(readValue(buffer)!);
       case 141: 
-        return DownloadData.decode(readValue(buffer)!);
+        return TrackData.decode(readValue(buffer)!);
       case 142: 
+        return DownloadData.decode(readValue(buffer)!);
+      case 143: 
         return WidevineInfo.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
@@ -1326,7 +1382,7 @@ abstract class PlayerEventListener {
 
   void onPlaybackError(String error);
 
-  void onIMAStatusChange(IMAStatus? status, double? skipOffsetSecond);
+  void onIMAStatusChange(IMAEventData? data);
 
   void onTracksLoaded(List<TrackData> tracks);
 
@@ -1497,10 +1553,9 @@ abstract class PlayerEventListener {
           assert(message != null,
           'Argument for dev.flutter.pigeon.kvideo.PlayerEventListener.onIMAStatusChange was null.');
           final List<Object?> args = (message as List<Object?>?)!;
-          final IMAStatus? arg_status = (args[0] as IMAStatus?);
-          final double? arg_skipOffsetSecond = (args[1] as double?);
+          final IMAEventData? arg_data = (args[0] as IMAEventData?);
           try {
-            api.onIMAStatusChange(arg_status, arg_skipOffsetSecond);
+            api.onIMAStatusChange(arg_data);
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);

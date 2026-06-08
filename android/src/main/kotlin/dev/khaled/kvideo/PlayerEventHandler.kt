@@ -100,7 +100,13 @@ class PlayerEventHandler(
 
     override fun onAdEvent(event: AdEvent) {
         Log.d("PlayerEventHandler_onAdEvent", event.type.toString())
-        listener.onIMAStatusChange(event.type.toIMAStatus(), event.ad?.skipTimeOffset) {}
+        listener.onIMAStatusChange(
+            IMAEventData(
+                event.type.toIMAStatus(),
+                event.ad?.skipTimeOffset,
+                event.ad?.adId,
+            )
+        ) {}
     }
 
     override fun onVideoSizeChanged(videoSize: VideoSize) {

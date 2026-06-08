@@ -229,6 +229,40 @@ data class VideoTextureData (
 }
 
 /** Generated class from Pigeon that represents data sent in messages. */
+data class IMAEventData (
+  val status: IMAStatus? = null,
+  val skipOffsetSecond: Double? = null,
+  val adTagID: String? = null
+)
+ {
+  companion object {
+    fun fromList(pigeonVar_list: List<Any?>): IMAEventData {
+      val status = pigeonVar_list[0] as IMAStatus?
+      val skipOffsetSecond = pigeonVar_list[1] as Double?
+      val adTagID = pigeonVar_list[2] as String?
+      return IMAEventData(status, skipOffsetSecond, adTagID)
+    }
+  }
+  fun toList(): List<Any?> {
+    return listOf(
+      status,
+      skipOffsetSecond,
+      adTagID,
+    )
+  }
+  override fun equals(other: Any?): Boolean {
+    if (other !is IMAEventData) {
+      return false
+    }
+    if (this === other) {
+      return true
+    }
+    return PigeonPigeonUtils.deepEquals(toList(), other.toList())  }
+
+  override fun hashCode(): Int = toList().hashCode()
+}
+
+/** Generated class from Pigeon that represents data sent in messages. */
 data class Media (
   /** The Dash URL of the media (required) */
   val url: String,
@@ -547,35 +581,40 @@ private open class PigeonPigeonCodec : StandardMessageCodec() {
       }
       136.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          Media.fromList(it)
+          IMAEventData.fromList(it)
         }
       }
       137.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          PlayerConfiguration.fromList(it)
+          Media.fromList(it)
         }
       }
       138.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          BufferingConfig.fromList(it)
+          PlayerConfiguration.fromList(it)
         }
       }
       139.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          SeekConfig.fromList(it)
+          BufferingConfig.fromList(it)
         }
       }
       140.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          TrackData.fromList(it)
+          SeekConfig.fromList(it)
         }
       }
       141.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          DownloadData.fromList(it)
+          TrackData.fromList(it)
         }
       }
       142.toByte() -> {
+        return (readValue(buffer) as? List<Any?>)?.let {
+          DownloadData.fromList(it)
+        }
+      }
+      143.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
           WidevineInfo.fromList(it)
         }
@@ -613,32 +652,36 @@ private open class PigeonPigeonCodec : StandardMessageCodec() {
         stream.write(135)
         writeValue(stream, value.toList())
       }
-      is Media -> {
+      is IMAEventData -> {
         stream.write(136)
         writeValue(stream, value.toList())
       }
-      is PlayerConfiguration -> {
+      is Media -> {
         stream.write(137)
         writeValue(stream, value.toList())
       }
-      is BufferingConfig -> {
+      is PlayerConfiguration -> {
         stream.write(138)
         writeValue(stream, value.toList())
       }
-      is SeekConfig -> {
+      is BufferingConfig -> {
         stream.write(139)
         writeValue(stream, value.toList())
       }
-      is TrackData -> {
+      is SeekConfig -> {
         stream.write(140)
         writeValue(stream, value.toList())
       }
-      is DownloadData -> {
+      is TrackData -> {
         stream.write(141)
         writeValue(stream, value.toList())
       }
-      is WidevineInfo -> {
+      is DownloadData -> {
         stream.write(142)
+        writeValue(stream, value.toList())
+      }
+      is WidevineInfo -> {
+        stream.write(143)
         writeValue(stream, value.toList())
       }
       else -> super.writeValue(stream, value)
@@ -1215,12 +1258,12 @@ class PlayerEventListener(private val binaryMessenger: BinaryMessenger, private 
       } 
     }
   }
-  fun onIMAStatusChange(statusArg: IMAStatus?, skipOffsetSecondArg: Double?, callback: (Result<Unit>) -> Unit)
+  fun onIMAStatusChange(dataArg: IMAEventData?, callback: (Result<Unit>) -> Unit)
 {
     val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
     val channelName = "dev.flutter.pigeon.kvideo.PlayerEventListener.onIMAStatusChange$separatedMessageChannelSuffix"
     val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
-    channel.send(listOf(statusArg, skipOffsetSecondArg)) {
+    channel.send(listOf(dataArg)) {
       if (it is List<*>) {
         if (it.size > 1) {
           callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))

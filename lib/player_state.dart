@@ -24,7 +24,7 @@ class PlayerState implements PlayerEventListener {
 
   final ValueNotifier<PiPMode> pipMode = ValueNotifier(PiPMode.closed);
 
-  final ValueNotifier<(IMAStatus?, double?)> ima = ValueNotifier((null, null));
+  final ValueNotifier<IMAEventData?> ima = ValueNotifier(null);
 
   @override
   void onBufferUpdate(int second) {
@@ -37,8 +37,8 @@ class PlayerState implements PlayerEventListener {
   }
 
   @override
-  void onIMAStatusChange(IMAStatus? status, double? skipCountdownSecond) {
-    ima.value = (status, skipCountdownSecond);
+  void onIMAStatusChange(IMAEventData? data) {
+    ima.value = data;
   }
 
   @override

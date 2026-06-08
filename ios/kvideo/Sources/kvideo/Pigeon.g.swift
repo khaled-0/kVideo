@@ -244,6 +244,39 @@ struct VideoTextureData: Hashable {
 }
 
 /// Generated class from Pigeon that represents data sent in messages.
+struct IMAEventData: Hashable {
+  var status: IMAStatus? = nil
+  var skipOffsetSecond: Double? = nil
+  var adTagID: String? = nil
+
+
+  // swift-format-ignore: AlwaysUseLowerCamelCase
+  static func fromList(_ pigeonVar_list: [Any?]) -> IMAEventData? {
+    let status: IMAStatus? = nilOrValue(pigeonVar_list[0])
+    let skipOffsetSecond: Double? = nilOrValue(pigeonVar_list[1])
+    let adTagID: String? = nilOrValue(pigeonVar_list[2])
+
+    return IMAEventData(
+      status: status,
+      skipOffsetSecond: skipOffsetSecond,
+      adTagID: adTagID
+    )
+  }
+  func toList() -> [Any?] {
+    return [
+      status,
+      skipOffsetSecond,
+      adTagID,
+    ]
+  }
+  static func == (lhs: IMAEventData, rhs: IMAEventData) -> Bool {
+    return deepEqualsPigeon(lhs.toList(), rhs.toList())  }
+  func hash(into hasher: inout Hasher) {
+    deepHashPigeon(value: toList(), hasher: &hasher)
+  }
+}
+
+/// Generated class from Pigeon that represents data sent in messages.
 struct Media: Hashable {
   /// The Dash URL of the media (required)
   var url: String
@@ -570,18 +603,20 @@ private class PigeonPigeonCodecReader: FlutterStandardReader {
     case 135:
       return VideoTextureData.fromList(self.readValue() as! [Any?])
     case 136:
-      return Media.fromList(self.readValue() as! [Any?])
+      return IMAEventData.fromList(self.readValue() as! [Any?])
     case 137:
-      return PlayerConfiguration.fromList(self.readValue() as! [Any?])
+      return Media.fromList(self.readValue() as! [Any?])
     case 138:
-      return BufferingConfig.fromList(self.readValue() as! [Any?])
+      return PlayerConfiguration.fromList(self.readValue() as! [Any?])
     case 139:
-      return SeekConfig.fromList(self.readValue() as! [Any?])
+      return BufferingConfig.fromList(self.readValue() as! [Any?])
     case 140:
-      return TrackData.fromList(self.readValue() as! [Any?])
+      return SeekConfig.fromList(self.readValue() as! [Any?])
     case 141:
-      return DownloadData.fromList(self.readValue() as! [Any?])
+      return TrackData.fromList(self.readValue() as! [Any?])
     case 142:
+      return DownloadData.fromList(self.readValue() as! [Any?])
+    case 143:
       return WidevineInfo.fromList(self.readValue() as! [Any?])
     default:
       return super.readValue(ofType: type)
@@ -612,26 +647,29 @@ private class PigeonPigeonCodecWriter: FlutterStandardWriter {
     } else if let value = value as? VideoTextureData {
       super.writeByte(135)
       super.writeValue(value.toList())
-    } else if let value = value as? Media {
+    } else if let value = value as? IMAEventData {
       super.writeByte(136)
       super.writeValue(value.toList())
-    } else if let value = value as? PlayerConfiguration {
+    } else if let value = value as? Media {
       super.writeByte(137)
       super.writeValue(value.toList())
-    } else if let value = value as? BufferingConfig {
+    } else if let value = value as? PlayerConfiguration {
       super.writeByte(138)
       super.writeValue(value.toList())
-    } else if let value = value as? SeekConfig {
+    } else if let value = value as? BufferingConfig {
       super.writeByte(139)
       super.writeValue(value.toList())
-    } else if let value = value as? TrackData {
+    } else if let value = value as? SeekConfig {
       super.writeByte(140)
       super.writeValue(value.toList())
-    } else if let value = value as? DownloadData {
+    } else if let value = value as? TrackData {
       super.writeByte(141)
       super.writeValue(value.toList())
-    } else if let value = value as? WidevineInfo {
+    } else if let value = value as? DownloadData {
       super.writeByte(142)
+      super.writeValue(value.toList())
+    } else if let value = value as? WidevineInfo {
+      super.writeByte(143)
       super.writeValue(value.toList())
     } else {
       super.writeValue(value)
@@ -1049,7 +1087,7 @@ protocol PlayerEventListenerProtocol {
   func onBufferUpdate(second secondArg: Int64, completion: @escaping (Result<Void, PigeonError>) -> Void)
   func onPlaybackUpdate(status statusArg: PlaybackStatus, completion: @escaping (Result<Void, PigeonError>) -> Void)
   func onPlaybackError(error errorArg: String, completion: @escaping (Result<Void, PigeonError>) -> Void)
-  func onIMAStatusChange(status statusArg: IMAStatus?, skipOffsetSecond skipOffsetSecondArg: Double?, completion: @escaping (Result<Void, PigeonError>) -> Void)
+  func onIMAStatusChange(data dataArg: IMAEventData?, completion: @escaping (Result<Void, PigeonError>) -> Void)
   func onTracksLoaded(tracks tracksArg: [TrackData], completion: @escaping (Result<Void, PigeonError>) -> Void)
   func onPlaybackSpeedUpdate(speed speedArg: Double, completion: @escaping (Result<Void, PigeonError>) -> Void)
   func onPiPModeChange(mode modeArg: PiPMode, completion: @escaping (Result<Void, PigeonError>) -> Void)
@@ -1173,10 +1211,10 @@ class PlayerEventListener: PlayerEventListenerProtocol {
       }
     }
   }
-  func onIMAStatusChange(status statusArg: IMAStatus?, skipOffsetSecond skipOffsetSecondArg: Double?, completion: @escaping (Result<Void, PigeonError>) -> Void) {
+  func onIMAStatusChange(data dataArg: IMAEventData?, completion: @escaping (Result<Void, PigeonError>) -> Void) {
     let channelName: String = "dev.flutter.pigeon.kvideo.PlayerEventListener.onIMAStatusChange\(messageChannelSuffix)"
     let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
-    channel.sendMessage([statusArg, skipOffsetSecondArg] as [Any?]) { response in
+    channel.sendMessage([dataArg] as [Any?]) { response in
       guard let listResponse = response as? [Any?] else {
         completion(.failure(createConnectionError(withChannelName: channelName)))
         return
