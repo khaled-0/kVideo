@@ -37,11 +37,17 @@ class PiPActivity : ComponentActivity(), ServiceConnection {
 
     var isParentDestroyed = false
 
+    var isServiceBound = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (!packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)) return finishAndRemoveTask()
 
-        if (Build.VERSION.SDK_INT >= VERSION_CODES.Q) {
+        if (!intent.hasExtra("id") || !KVideoPlugin.controllers.contains(intent.getStringExtra("id"))) {
+            return finishAndRemoveTask()
+        }
+
+        if (Build.VERSION.SDK_INT >= VERSION_CODES.Q && !isServiceBound) {
             val serviceIntent = Intent(applicationContext, Android12PiPService::class.java)
             startService(serviceIntent)
             bindService(serviceIntent, this, BIND_AUTO_CREATE)
@@ -121,7 +127,7 @@ class PiPActivity : ComponentActivity(), ServiceConnection {
 
     override fun onDestroy() {
         super.onDestroy()
-        if (Build.VERSION.SDK_INT >= VERSION_CODES.Q) {
+        if (Build.VERSION.SDK_INT >= VERSION_CODES.Q && isServiceBound) {
             unbindService(this)
             val serviceIntent = Intent(applicationContext, Android12PiPService::class.java)
             stopService(serviceIntent)
@@ -143,9 +149,13 @@ class PiPActivity : ComponentActivity(), ServiceConnection {
     }
 
 
-    override fun onServiceConnected(p0: ComponentName?, p1: IBinder?) {}
+    override fun onServiceConnected(p0: ComponentName?, p1: IBinder?) {
+        isServiceBound = true
+    }
 
-    override fun onServiceDisconnected(p0: ComponentName?) {}
+    override fun onServiceDisconnected(p0: ComponentName?) {
+        isServiceBound = false
+    }
 
 }
 
