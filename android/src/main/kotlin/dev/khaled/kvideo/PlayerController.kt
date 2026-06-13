@@ -240,7 +240,10 @@ class PlayerController(
     }
 
 
-    fun notifyPiPModeChange(mode: PiPMode) = eventHandler.listener.onPiPModeChange(mode) {}
+    fun notifyPiPModeChange(mode: PiPMode) {
+        if (!this::player.isInitialized) return
+        eventHandler.listener.onPiPModeChange(mode) {}
+    }
     private val pipListener: PiPListener = { mode: PiPMode ->
         notifyPiPModeChange(mode)
         // This gets called when using PiPActivity

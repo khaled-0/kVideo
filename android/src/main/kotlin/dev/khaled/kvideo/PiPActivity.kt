@@ -1,6 +1,7 @@
 package dev.khaled.kvideo
 
 import android.app.ActivityManager
+import android.app.BackgroundServiceStartNotAllowedException
 import android.app.PictureInPictureParams
 import android.app.Service
 import android.content.ComponentName
@@ -48,9 +49,12 @@ class PiPActivity : ComponentActivity(), ServiceConnection {
         }
 
         if (Build.VERSION.SDK_INT >= VERSION_CODES.Q && !isServiceBound) {
-            val serviceIntent = Intent(applicationContext, Android12PiPService::class.java)
-            startService(serviceIntent)
-            bindService(serviceIntent, this, BIND_AUTO_CREATE)
+            try {
+                val serviceIntent = Intent(applicationContext, Android12PiPService::class.java)
+                startService(serviceIntent)
+                bindService(serviceIntent, this, BIND_AUTO_CREATE)
+            } catch (_: Exception) {
+            }
         }
 
         window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)

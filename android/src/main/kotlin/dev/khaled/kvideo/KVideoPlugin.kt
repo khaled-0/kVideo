@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Context.BIND_AUTO_CREATE
 import android.content.Intent
 import android.content.ServiceConnection
+import android.content.pm.PackageManager
 import android.media.MediaDrm
 import android.media.MediaDrm.PROPERTY_ALGORITHMS
 import android.media.MediaDrm.PROPERTY_DESCRIPTION
@@ -128,6 +129,8 @@ class KVideoPlugin : FlutterPlugin, ActivityAware, PlayerInstance, DRMInfoApi,
 
     override fun onUserLeaveHint() {
         val activity = activityPluginBinding?.activity ?: return
+        if (!activity.packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)) return
+
         if (Build.VERSION.SDK_INT < VERSION_CODES.O) {
             @Suppress("DEPRECATION") (activity.enterPictureInPictureMode())
         } else {
@@ -136,9 +139,12 @@ class KVideoPlugin : FlutterPlugin, ActivityAware, PlayerInstance, DRMInfoApi,
         }
 
         if (Build.VERSION.SDK_INT >= VERSION_CODES.Q && !isServiceBound) {
-            val serviceIntent = Intent(activity, Android12PiPService::class.java)
-            activity.startService(serviceIntent)
-            activity.bindService(serviceIntent, this, BIND_AUTO_CREATE)
+            try {
+                val serviceIntent = Intent(activity, Android12PiPService::class.java)
+                activity.startService(serviceIntent)
+                activity.bindService(serviceIntent, this, BIND_AUTO_CREATE)
+            } catch (_: Exception) {
+            }
         }
 
         if (activity.isInPictureInPictureMode) {

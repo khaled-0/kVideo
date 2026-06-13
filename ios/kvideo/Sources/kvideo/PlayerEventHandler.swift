@@ -44,7 +44,7 @@ class PlayerEventHandler {
     func removeObservers() {
 
         if let timeObserver = self.timeObserver {
-            controller.player.removeTimeObserver(timeObserver)
+            self.controller.player.removeTimeObserver(timeObserver)
             self.timeObserver = nil
         }
 
@@ -214,7 +214,7 @@ extension PlayerEventHandler {
         ) { [weak self] _ in
             guard let self = self else { return }
 
-            guard controller.player.currentTime().isValid else { return }
+            guard self.controller.player.currentTime().isValid else { return }
 
             let posSeconds = Int64(controller.player.currentTime().seconds)
             self.listener.onProgressUpdate(second: posSeconds) { _ in }
