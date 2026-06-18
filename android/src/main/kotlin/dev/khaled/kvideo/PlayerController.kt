@@ -220,6 +220,7 @@ class PlayerController(
 
 
     fun reattachPlayerSurface() {
+        if (!this::player.isInitialized) return
         Handler(Looper.getMainLooper()).post {
             try {
                 if (this::surfaceProducer.isInitialized) {
@@ -244,6 +245,7 @@ class PlayerController(
         if (!this::player.isInitialized) return
         eventHandler.listener.onPiPModeChange(mode) {}
     }
+
     private val pipListener: PiPListener = { mode: PiPMode ->
         notifyPiPModeChange(mode)
         // This gets called when using PiPActivity
@@ -340,34 +342,42 @@ class PlayerController(
 
         if (track.type == TrackType.SUBTITLE) return
 
-        var override: TrackSelectionOverride? = null
-        player.currentTracks.groups.forEach { group ->
-            // Match by TYPE first (Audio/Video/Text)
-            if (group.type == track.type?.toExoType()) {
-                for (trackIndex in 0 until group.length) {
-                    val format = group.getTrackFormat(trackIndex)
-
-                    // Compare fields if they exist
-                    val matches = listOf(
-                        track.language?.let { it == format.language },
-                        track.bitrate?.let { it == format.bitrate.toLong() },
-                        track.width?.let { it == format.width.toLong() },
-                        track.height?.let { it == format.height.toLong() },
-                        track.label?.let { it == format.label },
-                    ).all { it != false }
-
-                    if (!matches) continue
-                    override = TrackSelectionOverride(group.mediaTrackGroup, listOf(trackIndex))
-                    break
+        if (track.type == TrackType.VIDEO) {
+            return with(trackSelector.buildUponParameters()) {
+                track.bitrate?.let { setMaxVideoBitrate(it.toInt()) }
+                if (track.width != null && track.height != null) {
+                    setMaxVideoSize(track.width.toInt(), track.height.toInt())
                 }
+                trackSelector.parameters = build()
             }
         }
 
-        if (override == null) return
-        with(trackSelector.buildUponParameters()) {
-            clearOverridesOfType(override.type)
-            addOverride(override)
-            trackSelector.parameters = build()
+        if (track.type == TrackType.AUDIO) {
+            var override: TrackSelectionOverride? = null
+            player.currentTracks.groups.forEach { group ->
+                if (group.type == C.TRACK_TYPE_AUDIO) {
+                    for (trackIndex in 0 until group.length) {
+                        val format = group.getTrackFormat(trackIndex)
+                        val matches = listOf(
+                            track.language?.let { it == format.language },
+                            track.label?.let { it == format.label },
+                        ).all { it != false }
+                        if (!matches) continue
+
+                        override = TrackSelectionOverride(
+                            group.mediaTrackGroup, listOf(trackIndex)
+                        )
+                    }
+                }
+            }
+
+            override?.let {
+                with(trackSelector.buildUponParameters()) {
+                    clearOverridesOfType(override.type)
+                    addOverride(override)
+                    trackSelector.parameters = build()
+                }
+            }
         }
     }
 
