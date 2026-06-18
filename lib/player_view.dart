@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -16,8 +17,15 @@ enum AndroidViewMode {
 
 class PlayerView extends StatelessWidget {
   final PlayerController controller;
+  final Set<Factory<OneSequenceGestureRecognizer>> gestureRecognizers;
+  final PlatformViewHitTestBehavior hitTestBehavior;
 
-  const PlayerView(this.controller, {super.key});
+  const PlayerView(
+    this.controller, {
+    super.key,
+    this.gestureRecognizers = const {},
+    this.hitTestBehavior = PlatformViewHitTestBehavior.opaque,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -29,6 +37,8 @@ class PlayerView extends StatelessWidget {
         creationParams: controller.id,
         layoutDirection: Directionality.maybeOf(context) ?? TextDirection.ltr,
         creationParamsCodec: PlayerControllerApi.pigeonChannelCodec,
+        gestureRecognizers: gestureRecognizers,
+        hitTestBehavior: hitTestBehavior,
       );
     }
 
@@ -54,8 +64,8 @@ class PlayerView extends StatelessWidget {
         viewType: viewType,
         surfaceFactory: (context, controller) => AndroidViewSurface(
           controller: controller as AndroidViewController,
-          gestureRecognizers: const {},
-          hitTestBehavior: PlatformViewHitTestBehavior.opaque,
+          gestureRecognizers: gestureRecognizers,
+          hitTestBehavior: hitTestBehavior,
         ),
         onCreatePlatformView: (params) {
           final view = PlatformViewsService.initSurfaceAndroidView(
