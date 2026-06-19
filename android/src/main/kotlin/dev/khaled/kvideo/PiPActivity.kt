@@ -142,8 +142,8 @@ class PiPActivity : ComponentActivity(), ServiceConnection {
             val activityManager = baseContext.getSystemService(ACTIVITY_SERVICE) as ActivityManager
             val appTasks = activityManager.appTasks
             for (task in appTasks) {
-                val baseIntent = task.taskInfo.baseIntent
-                val categories = baseIntent.categories
+                val baseIntent = task.taskInfo?.baseIntent
+                val categories = baseIntent?.categories
                 if (categories != null && categories.contains(Intent.CATEGORY_LAUNCHER)) {
                     task.moveToFront()
                     return

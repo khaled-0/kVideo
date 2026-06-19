@@ -8,6 +8,7 @@ import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.common.Player.STATE_READY
 import androidx.media3.common.Timeline
+import androidx.media3.common.Tracks
 import androidx.media3.common.VideoSize
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlaybackException
@@ -63,6 +64,11 @@ class PlayerEventHandler(
             listener.onTracksLoaded(playerController.getTracks()) {}
             disableEmbeddedSubtitles()
         }
+    }
+
+    override fun onTracksChanged(tracks: Tracks) {
+        super.onTracksChanged(tracks)
+        listener.onTracksLoaded(playerController.getTracks()) {}
     }
 
     override fun onPositionDiscontinuity(
