@@ -467,6 +467,13 @@ extension PlayerController {
                 adTagID: event.ad?.adId,
             )
         ) { _ in }
+
+        if event.type == IMAAdEventType.LOADED
+            && pipController?.isPictureInPictureActive != true
+        {
+            adsManager.start()
+        }
+
     }
 
     public func adsManager(
